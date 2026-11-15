@@ -122,8 +122,17 @@ async function requireDatabase(env) {
 }
 
 function extractModelText(result) {
-  const value = result?.response ?? result?.choices?.[0]?.message?.content ?? "";
-  if (typeof value !== "string" || !value.trim()) throw new Error("AI bo‘sh javob qaytardi.");
+  const candidates = [
+    result?.response,
+    result?.choices?.[0]?.message?.content,
+    result?.result?.response,
+    result?.result?.choices?.[0]?.message?.content
+  ];
+  const value = candidates.find(item => typeof item === "string" && item.trim());
+  if (!value) {
+    const finishReason = result?.choices?.[0]?.finish_reason || result?.result?.choices?.[0]?.finish_reason || "unknown";
+    throw new Error("AI bo‘sh javob qaytardi (finish_reason: " + finishReason + ").");
+  }
   let raw = value.trim();
   const fence = String.fromCharCode(96).repeat(3);
   if (raw.startsWith(fence)) raw = raw.split("\n").slice(1).join("\n").split(fence)[0].trim();
@@ -193,8 +202,9 @@ async function planOwnerCommand(env, command, selectedProjectId = null) {
       { role: "system", content: systemPrompt },
       { role: "user", content: JSON.stringify({ command, selectedProjectId, projects: projectList }) }
     ],
-    temperature: 0.2,
-    max_tokens: 1200
+    temperature: 0.1,
+    max_tokens: 1800,
+    response_format: { type: "json_object" }
   });
   return normaliseManagerPlan(extractModelText(result), projects);
 }
