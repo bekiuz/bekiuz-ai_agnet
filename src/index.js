@@ -209,6 +209,141 @@ async function planOwnerCommand(env, command, selectedProjectId = null) {
   return normaliseManagerPlan(extractModelText(result), projects);
 }
 
+
+function parseGitHubRepo(repoUrl) {
+  try {
+    const parsed = new URL(repoUrl);
+    if (parsed.hostname.toLowerCase() !== "github.com") return null;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return null;
+    const owner = parts[0];
+    const name = parts[1].replace(/\.git$/i, "");
+    if (!/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(name)) return null;
+    return { owner, name, fullName: owner + "/" + name };
+  } catch {
+    return null;
+  }
+}
+
+async function githubRequest(env, pathname) {
+  const response = await fetch("https://api.github.com" + pathname, {
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "BEKIUZ-AI-Manager",
+      ...(env.GITHUB_TOKEN ? { "Authorization": "Bearer " + env.GITHUB_TOKEN } : {})
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
+async function scanGitHubProjects(env) {
+  const projectsResult = await env.DB.prepare(
+    "SELECT id, name, repo_url FROM projects WHERE repo_url LIKE 'https://github.com/%' ORDER BY name"
+  ).all();
+  const projects = projectsResult.results || [];
+  const results = [];
+
+  for (const project of projects) {
+    const repo = parseGitHubRepo(project.repo_url);
+    if (!repo) {
+      results.push({ projectId: project.id, name: project.name, status: "invalid_repository", error: "GitHub repository havolasi noto‘g‘ri." });
+      continue;
+    }
+
+    let status = "healthy";
+    let isPrivate = null;
+    let branch = null;
+    let commitSha = null;
+    let commitAt = null;
+    let commitMessage = null;
+    let rootFiles = [];
+    let error = null;
+
+    try {
+      const meta = await githubRequest(env, "/repos/" + encodeURIComponent(repo.owner) + "/" + encodeURIComponent(repo.name));
+      if (!meta.response.ok) {
+        if (meta.response.status === 404 && !env.GITHUB_TOKEN) {
+          status = "permission_required";
+          error = "Repository private yoki GitHub ruxsati talab qilinadi. Worker uchun read-only GITHUB_TOKEN kerak.";
+        } else if (meta.response.status === 404) {
+          status = "not_found_or_no_access";
+          error = "Repository topilmadi yoki token unga kira olmaydi.";
+        } else {
+          status = "error";
+          error = "GitHub API xatosi: HTTP " + meta.response.status;
+        }
+      } else {
+        isPrivate = Boolean(meta.data.private);
+        branch = meta.data.default_branch || null;
+        const encodedRepo = encodeURIComponent(repo.owner) + "/" + encodeURIComponent(repo.name);
+        const [commits, files] = await Promise.all([
+          githubRequest(env, "/repos/" + encodedRepo + "/commits?per_page=1"),
+          githubRequest(env, "/repos/" + encodedRepo + "/contents")
+        ]);
+        if (commits.response.ok && Array.isArray(commits.data) && commits.data[0]) {
+          const latest = commits.data[0];
+          commitSha = latest.sha || null;
+          commitAt = latest.commit?.committer?.date || latest.commit?.author?.date || null;
+          commitMessage = String(latest.commit?.message || "").slice(0, 500);
+        }
+        if (files.response.ok && Array.isArray(files.data)) {
+          rootFiles = files.data.slice(0, 80).map(file => ({
+            name: String(file.name || "").slice(0, 160),
+            type: file.type === "dir" ? "dir" : "file"
+          }));
+        } else if (!files.response.ok) {
+          status = "partial";
+          error = "Repository ma’lumoti olindi, ammo fayllar ro‘yxati olinmadi (HTTP " + files.response.status + ").";
+        }
+        if (!commits.response.ok && !error) {
+          status = "partial";
+          error = "Repository ma’lumoti olindi, ammo oxirgi commit olinmadi (HTTP " + commits.response.status + ").";
+        }
+      }
+    } catch (err) {
+      status = "error";
+      error = String(err?.message || "GitHub bilan bog‘lanib bo‘lmadi.").slice(0, 240);
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO project_checks (id, project_id, provider, checked_at, status, is_private, default_branch, last_commit_sha, last_commit_at, last_commit_message, root_files_json, error) VALUES (?, ?, 'github', ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(project_id, provider) DO UPDATE SET id=excluded.id, checked_at=excluded.checked_at, status=excluded.status, is_private=excluded.is_private, default_branch=excluded.default_branch, last_commit_sha=excluded.last_commit_sha, last_commit_at=excluded.last_commit_at, last_commit_message=excluded.last_commit_message, root_files_json=excluded.root_files_json, error=excluded.error"
+    ).bind(
+      crypto.randomUUID(), project.id, new Date().toISOString(), status,
+      isPrivate === null ? null : (isPrivate ? 1 : 0), branch, commitSha, commitAt, commitMessage,
+      JSON.stringify(rootFiles), error
+    ).run();
+
+    results.push({
+      projectId: project.id,
+      name: project.name,
+      repository: repo.fullName,
+      status,
+      isPrivate,
+      defaultBranch: branch,
+      lastCommitSha: commitSha,
+      lastCommitAt: commitAt,
+      lastCommitMessage: commitMessage,
+      rootFiles,
+      error
+    });
+  }
+
+  await audit(env, "github.projects_scanned", "integration", "github", {
+    total: results.length,
+    healthy: results.filter(item => item.status === "healthy").length,
+    permissionRequired: results.filter(item => item.status === "permission_required").length
+  });
+  return {
+    checkedAt: new Date().toISOString(),
+    total: results.length,
+    healthy: results.filter(item => item.status === "healthy").length,
+    permissionRequired: results.filter(item => item.status === "permission_required").length,
+    results
+  };
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -261,18 +396,30 @@ async function handleApi(request, env) {
   const dbError = await requireDatabase(env);
   if (dbError) return dbError;
 
+  if (path === "/api/integrations/github/scan" && method === "POST") {
+    try {
+      const result = await scanGitHubProjects(env);
+      return json({ ok: true, ...result });
+    } catch (error) {
+      console.error("GitHub scan failed:", error);
+      return json({ error: "GITHUB_SCAN_FAILED", message: "GitHub loyihalarini tekshirishda xatolik yuz berdi." }, 502);
+    }
+  }
+
   if (path === "/api/bootstrap" && method === "GET") {
-    const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult] = await Promise.all([
-      env.DB.prepare("SELECT id, name, category, repo_url, deployment_url, status, updated_at FROM projects ORDER BY name").all(),
+    const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult, githubChecksResult] = await Promise.all([
+      env.DB.prepare("SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at, c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private, c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at, c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json, c.error AS github_error FROM projects p LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github' ORDER BY p.name").all(),
       env.DB.prepare("SELECT t.id, t.title, t.description, t.project_id, t.assigned_agent, t.priority, t.status, t.created_at, p.summary AS ai_summary FROM tasks t LEFT JOIN manager_plans p ON p.task_id = t.id ORDER BY t.created_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT s.id, s.task_id, s.step_order, s.agent, s.title, s.description, s.operation, s.requires_approval, s.status FROM task_steps s JOIN tasks t ON t.id = s.task_id ORDER BY t.created_at DESC, s.step_order ASC LIMIT 100").all(),
       env.DB.prepare("SELECT (SELECT COUNT(*) FROM projects) AS projects, (SELECT COUNT(*) FROM tasks) AS tasks, (SELECT COUNT(*) FROM tasks WHERE status = 'in_progress') AS active, (SELECT COUNT(*) FROM approvals WHERE status = 'pending') AS pending_approvals").first(),
       env.DB.prepare("SELECT id, title, operation, requested_at FROM approvals WHERE status = 'pending' ORDER BY requested_at DESC LIMIT 10").all(),
-      env.DB.prepare("SELECT id, action, target_type, target_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12").all()
+      env.DB.prepare("SELECT id, action, target_type, target_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12").all(),
+      env.DB.prepare("SELECT project_id, checked_at, status, is_private, default_branch, last_commit_at, last_commit_message, root_files_json, error FROM project_checks WHERE provider = 'github'").all()
     ]);
     return json({
       stats: counts || { projects: 0, tasks: 0, active: 0, pending_approvals: 0 },
       projects: projectsResult.results || [],
+      githubChecks: githubChecksResult.results || [],
       tasks: tasksResult.results || [],
       taskSteps: stepsResult.results || [],
       approvals: approvalsResult.results || [],
