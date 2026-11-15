@@ -47,14 +47,59 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("uz-UZ", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function githubStatusLabel(status) {
+  return ({
+    healthy: "Tekshirildi",
+    partial: "Qisman tekshirildi",
+    permission_required: "Private ruxsat kerak",
+    not_found_or_no_access: "Topilmadi / ruxsat yo‘q",
+    invalid_repository: "Havola xato",
+    error: "Xatolik"
+  })[status] || "Hali tekshirilmagan";
+}
+
 function renderProjects(projects) {
   $("#project-count").textContent = projects.length;
-  $("#projects-list").innerHTML = projects.length ? projects.map(project => `
+  $("#projects-list").innerHTML = projects.length ? projects.map(project => {
+    const status = project.github_status || "not_checked";
+    const commit = project.github_last_commit_message
+      ? `<small class="project-commit">${escapeHtml(project.github_last_commit_message)}</small>`
+      : "";
+    return `
     <div class="project-row">
       <span class="project-icon">${escapeHtml((project.name || "P").slice(0, 1).toUpperCase())}</span>
-      <span class="project-main"><b>${escapeHtml(project.name)}</b><small>${escapeHtml(shortRepo(project.repo_url))}</small></span>
-      <span class="project-status">${escapeHtml(project.status || "unknown")}</span>
-    </div>`).join("") : '<div class="empty-state">Hali loyihalar qo‘shilmagan.</div>';
+      <span class="project-main"><b>${escapeHtml(project.name)}</b><small>${escapeHtml(shortRepo(project.repo_url))}</small>${commit}</span>
+      <span class="project-status ${status === "healthy" ? "github-ok" : status === "permission_required" ? "github-warn" : ""}">${escapeHtml(githubStatusLabel(status))}</span>
+    </div>`;
+  }).join("") : '<div class="empty-state">Hali loyihalar qo‘shilmagan.</div>';
+}
+
+function renderGitHubResults(checks = []) {
+  const target = $("#github-scan-results");
+  if (!checks.length) {
+    target.innerHTML = '<div class="empty-state">Hali GitHub tekshiruvi bajarilmagan.</div>';
+    return;
+  }
+  const healthy = checks.filter(item => item.status === "healthy").length;
+  const privateNeeded = checks.filter(item => item.status === "permission_required").length;
+  $("#github-integration-status").textContent = healthy + "/" + checks.length + " tekshirildi";
+  target.innerHTML = checks.map(item => {
+    let files = [];
+    try { files = JSON.parse(item.root_files_json || "[]"); } catch {}
+    const names = files.slice(0, 6).map(file => file.name).join(" · ");
+    return `<div class="github-result-row">
+      <div class="github-result-top"><b>${escapeHtml(item.project_name || item.name || "Loyiha")}</b><span class="github-result-status">${escapeHtml(githubStatusLabel(item.status))}</span></div>
+      <small>${escapeHtml(item.repository || "")}${item.default_branch ? " · " + escapeHtml(item.default_branch) : ""}</small>
+      ${item.last_commit_message ? `<small class="project-commit">${escapeHtml(item.last_commit_message)}</small>` : ""}
+      ${names ? `<small class="github-files">${escapeHtml(names)}</small>` : ""}
+      ${item.error ? `<small class="github-error">${escapeHtml(item.error)}</small>` : ""}
+    </div>`;
+  }).join("");
+  if (privateNeeded) {
+    $("#github-scan-message").textContent = healthy + " ta repository tekshirildi. " + privateNeeded + " ta private repository uchun Worker’ga read-only GitHub ruxsati kerak.";
+  } else {
+    $("#github-scan-message").textContent = healthy + " ta repository tekshirildi.";
+  }
 }
 
 function renderTasks(tasks, taskSteps = []) {
@@ -93,6 +138,15 @@ async function loadDashboard() {
   $("#stat-active").textContent = data.stats.active ?? 0;
   $("#stat-approvals").textContent = data.stats.pending_approvals ?? 0;
   renderProjects(data.projects || []);
+  renderGitHubResults((data.projects || []).filter(project => project.github_status).map(project => ({
+    name: project.name,
+    repository: shortRepo(project.repo_url),
+    status: project.github_status,
+    default_branch: project.github_default_branch,
+    last_commit_message: project.github_last_commit_message,
+    root_files_json: project.github_root_files_json,
+    error: project.github_error
+  })));
   renderTasks(data.tasks || [], data.taskSteps || []);
 }
 
@@ -131,6 +185,24 @@ $("#login-form").addEventListener("submit", async (event) => {
   } finally {
     button.disabled = false;
     button.innerHTML = 'Tizimga kirish <span>→</span>';
+  }
+});
+
+$("#github-scan-button").addEventListener("click", async () => {
+  const button = $("#github-scan-button");
+  const message = $("#github-scan-message");
+  button.disabled = true;
+  button.textContent = "Repositorylar tekshirilmoqda…";
+  message.textContent = "GitHub API orqali repositorylar, oxirgi commit va asosiy fayllar tekshirilmoqda.";
+  try {
+    const result = await api("/api/integrations/github/scan", { method: "POST", body: "{}" });
+    message.textContent = result.healthy + "/" + result.total + " ta repository ochildi. Private ruxsat kerak bo‘lganlari alohida ko‘rsatiladi.";
+    await loadDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'GitHub loyihalarini tekshirish <span>→</span>';
   }
 });
 
