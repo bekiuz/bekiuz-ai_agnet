@@ -1,6 +1,15 @@
 name: Deploy BEKIUZ AI Manager
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'migrations/**'
+      - 'wrangler.toml'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
