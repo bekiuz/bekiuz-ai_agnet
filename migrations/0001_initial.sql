@@ -74,7 +74,7 @@ INSERT OR IGNORE INTO projects (id, name, category, repo_url, status) VALUES
   ('project-dublab', 'Bekiuz DubLab', 'telegram_bot', 'https://github.com/bekiuz/bekiuz-dublab', 'not_connected'),
   ('project-bekiuz-build', 'Bekiuz Build', 'web_app', 'https://github.com/bekiuz/BEKIUZ_BUILD', 'not_connected'),
   ('project-zuxrash', 'Zuxrash Android Assistant', 'android_app', 'https://github.com/bekiuz/zuxrash-android-assistant', 'not_connected'),
-  ('project-jjk-arena', 'JJK Arena', 'game', 'https://github.com/bekiuz/jjk-cursed-arena', 'not_connected'),
+  ('project-jjk-arena', 'JJK Arena', 'game', 'https://github.com/bekiuz/JJK-Cursed-Game', 'not_connected'),
   ('project-music-bot', 'Bekiuz Music Bot', 'telegram_bot', 'https://github.com/bekiuz/bekiuz-music-bot', 'not_connected'),
   ('project-miniish', 'MiniIsh', 'web_app', 'https://github.com/bekiuz/miniish-platform', 'not_connected'),
   ('project-forge', 'Bekiuz Forge', 'web_app', 'https://github.com/bekiuz/bekiuz-nexus', 'not_connected'),
