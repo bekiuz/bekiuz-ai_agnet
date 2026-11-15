@@ -1,0 +1,21 @@
+name = "bekiuz-ai-manager"
+main = "src/index.js"
+compatibility_date = "2026-11-15"
+workers_dev = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bekiuz-ai-manager"
+database_id = "85f19200-09a6-4f6b-8417-c4ad1fd8972f"
+migrations_dir = "migrations"
+
+[vars]
+AI_MODEL = "@cf/google/gemma-4-26b-a4b-it"

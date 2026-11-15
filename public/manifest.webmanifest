@@ -1,0 +1,12 @@
+{
+  "name": "BEKIUZ AI Manager",
+  "short_name": "BEKIUZ AI",
+  "description": "Barcha loyihalar uchun markaziy AI boshqaruv paneli.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090811",
+  "theme_color": "#090811",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "bekiuz-ai-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply bekiuz-ai-manager --local",
+    "db:migrate:remote": "wrangler d1 migrations apply bekiuz-ai-manager --remote",
+    "check": "node --check src/index.js && node --check public/app.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
