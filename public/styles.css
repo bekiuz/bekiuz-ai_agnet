@@ -32,3 +32,8 @@
 .project-status.github-ok:before{background:var(--green)}
 .project-status.github-warn:before{background:var(--amber)}
 .github-scan-button:disabled{opacity:.6;cursor:wait}
+
+.task-actions{display:flex;justify-content:flex-end;margin-top:9px}
+.cancel-task-button{border:1px solid #a94d654d;background:#a92f4b18;color:#ff9eae;border-radius:8px;padding:7px 11px;font-size:10px;font-weight:600}
+.cancel-task-button:hover{background:#a92f4b35;border-color:#d86b825c}
+.cancel-task-button:disabled{opacity:.55;cursor:wait}
