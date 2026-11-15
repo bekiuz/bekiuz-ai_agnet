@@ -262,7 +262,17 @@ export default {
         return json({ error: "INTERNAL_ERROR", message: "Serverda xatolik yuz berdi." }, 500);
       }
     }
-    if (env.ASSETS) return env.ASSETS.fetch(request);
+    if (env.ASSETS) {
+      const assetResponse = await env.ASSETS.fetch(request);
+      const response = new Response(assetResponse.body, assetResponse);
+      for (const [name, value] of Object.entries(headers)) response.headers.set(name, value);
+      response.headers.set(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+      );
+      if (url.protocol === "https:") response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      return response;
+    }
     return new Response("BEKIUZ AI Manager assets are not configured.", { status: 503, headers });
   }
 };
