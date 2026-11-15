@@ -127,9 +127,28 @@ function renderTasks(tasks, taskSteps = []) {
         </div>
         ${task.ai_summary ? `<p class="task-summary">${escapeHtml(task.ai_summary)}</p>` : ''}
         ${stepsHtml ? `<div class="plan-steps"><div class="plan-label">AI ISHCHILARGA TAQSIMLANGAN REJA</div>${stepsHtml}</div>` : ''}
+        ${["completed", "cancelled"].includes(task.status) ? "" : `<div class="task-actions"><button class="cancel-task-button" type="button" data-cancel-task="${escapeHtml(task.id)}">Bekor qilish</button></div>`}
       </article>`;
   }).join("") : '<div class="empty-state">Hozircha vazifalar yo‘q.</div>';
 }
+
+$("#tasks-list").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-cancel-task]");
+  if (!button) return;
+  const taskId = button.dataset.cancelTask;
+  if (!confirm("Ushbu vazifani bekor qilmoqchimisiz?")) return;
+  button.disabled = true;
+  button.textContent = "Bekor qilinmoqda…";
+  try {
+    await api("/api/tasks/" + encodeURIComponent(taskId) + "/cancel", { method: "POST", body: "{}" });
+    await loadDashboard();
+    $("#command-message").textContent = "Vazifa bekor qilindi.";
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Bekor qilish";
+    $("#command-message").textContent = error.message;
+  }
+});
 
 async function loadDashboard() {
   const data = await api("/api/bootstrap");
