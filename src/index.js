@@ -525,6 +525,21 @@ async function handleApi(request, env) {
     }, 201);
   }
 
+  const cancelMatch = path.match(/^\/api\/tasks\/([^/]+)\/cancel$/);
+  if (cancelMatch && method === "POST") {
+    const taskId = decodeURIComponent(cancelMatch[1]);
+    const task = await env.DB.prepare("SELECT id, title, status FROM tasks WHERE id = ?").bind(taskId).first();
+    if (!task) return json({ error: "TASK_NOT_FOUND", message: "Vazifa topilmadi." }, 404);
+    if (["completed", "cancelled"].includes(task.status)) {
+      return json({ error: "TASK_NOT_CANCELLABLE", message: "Bu vazifa allaqachon yakunlangan yoki bekor qilingan." }, 409);
+    }
+    await env.DB.prepare("UPDATE tasks SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(taskId).run();
+    await env.DB.prepare("UPDATE task_steps SET status = 'cancelled' WHERE task_id = ? AND status IN ('planned','in_progress','blocked')").bind(taskId).run();
+    await env.DB.prepare("UPDATE approvals SET status = 'rejected', decided_at = CURRENT_TIMESTAMP, decision_note = 'Vazifa egasi tomonidan bekor qilindi.' WHERE task_id = ? AND status = 'pending'").bind(taskId).run();
+    await audit(env, "task.cancelled", "task", taskId, { title: task.title });
+    return json({ ok: true, id: taskId, status: "cancelled", message: "Vazifa bekor qilindi." });
+  }
+
   if (path === "/api/tasks" && method === "POST") {
     let body;
     try { body = await readJson(request); } catch (error) {
