@@ -11,9 +11,9 @@ Bu mahsulot **BEKIUZ COMPANY** saytidan alohida. BEKIUZ COMPANY mijozlar uchun p
 - Cloudflare Worker API.
 - D1 ma’lumotlar bazasi: loyihalar, vazifalar, tasdiqlar, integratsiyalar va audit tarixi.
 - Boshlang‘ich loyiha reyestri.
-- Buyruqlarni vazifalar navbatiga xavfsiz saqlash.
+- Workers AI orqali buyruqlarni tahlil qilish va o‘zbek tilida ish rejasini tuzish.\n- Specialist AI rollariga reja qadamlarini taqsimlash.\n- Har bir qadamni D1 bazasida saqlash va boshqaruv panelida ko‘rsatish.
 
-**Muhim:** bu foundation hali GitHub repository'larini o‘zgartirmaydi, deploy qilmaydi yoki AI ishchilarni real ishga tushirmaydi. Hozircha buyruqlar navbatda saqlanadi. GitHub/Cloudflare/Telegram integratsiyalari va agent execution keyingi bosqichlarda ulanadi.
+**Muhim:** bu foundation hali GitHub repository'larini o‘zgartirmaydi, deploy qilmaydi yoki AI ishchilarni real ishga tushirmaydi. Hozir Workers AI orqali command planning va role-based delegation ishlaydi. Bu bosqichda agentlar ish rejasi tuzadi, ammo repository kodini o‘zgartirish, deploy yoki tashqi xabar yuborish hali bajarilmaydi. Bular uchun keyingi GitHub/Cloudflare/Telegram integratsiyalari zarur.
 
 ## Arxitektura
 
@@ -84,7 +84,7 @@ Keyin GitHub → Actions → **Deploy BEKIUZ AI Manager** workflow'ini qo‘lda 
 
 Deploydan oldin Cloudflare Worker secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`) va D1 migration sozlangan bo‘lishi kerak.
 
-## Birinchi bosqichda ishlaydigan API
+## AI Manager planning\n\n`POST /api/commands` Workers AI modeliga buyruq va loyiha reyestrini yuboradi, JSON ish rejasini tekshiradi, vazifani va agent qadamlarini D1 bazasiga yozadi.\n\n- Specialist rollar: manager, developer, monitoring, research, business, support, security.\n- Kod o‘zgartirish, deploy va tashqi xabar amallari tasdiq talab qiladigan qadam sifatida belgilanadi.\n- Rejalar `/api/bootstrap` orqali boshqaruv panelida ko‘rsatiladi.\n- AI plan tuzishi real kod o‘zgartirildi yoki deploy bo‘ldi degani emas.\n\n## Birinchi bosqichda ishlaydigan API
 
 - `GET /api/health`
 - `POST /api/auth/login`
