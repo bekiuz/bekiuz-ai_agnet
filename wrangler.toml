@@ -1,6 +1,7 @@
 name = "bekiuz-ai-manager"
 main = "src/index.js"
 compatibility_date = "2026-11-15"
+account_id = "8e50f8a34dd077df748113ddb1e85f91"
 workers_dev = true
 
 [assets]
