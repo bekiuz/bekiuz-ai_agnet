@@ -238,6 +238,29 @@ async function githubRequest(env, pathname) {
   return { response, data };
 }
 
+async function ensureGitHubTables(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS project_checks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'github',
+      checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      status TEXT NOT NULL,
+      is_private INTEGER,
+      default_branch TEXT,
+      last_commit_sha TEXT,
+      last_commit_at TEXT,
+      last_commit_message TEXT,
+      root_files_json TEXT NOT NULL DEFAULT '[]',
+      error TEXT,
+      UNIQUE(project_id, provider)
+    )
+  `).run();
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_project_checks_checked ON project_checks(checked_at DESC)"
+  ).run();
+}
+
 async function scanGitHubProjects(env) {
   const projectsResult = await env.DB.prepare(
     "SELECT id, name, repo_url FROM projects WHERE repo_url LIKE 'https://github.com/%' ORDER BY name"
@@ -395,6 +418,10 @@ async function handleApi(request, env) {
 
   const dbError = await requireDatabase(env);
   if (dbError) return dbError;
+
+  if (path === "/api/bootstrap" || path === "/api/integrations/github/scan") {
+    await ensureGitHubTables(env);
+  }
 
   if (path === "/api/integrations/github/scan" && method === "POST") {
     try {
