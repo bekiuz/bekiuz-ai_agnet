@@ -4,3 +4,15 @@
 @media(max-width:1050px){.sidebar{width:205px}.main-content{margin-left:205px;padding:24px}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.sidebar{position:sticky;inset:0 0 auto;width:100%;height:auto;padding:10px 14px;flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--line)}.brand{font-size:12px}.brand-mark.small{width:31px;height:31px}.sidebar-label,.sidebar nav,.sidebar-bottom{display:none}.main-content{margin:0;padding:18px 14px 20px}.topbar{padding-bottom:15px}.topbar h1{font-size:20px}.live-indicator{font-size:8px}.welcome-row{align-items:flex-start;gap:10px}.welcome-row h2{font-size:18px}.date-chip{font-size:7px;padding:7px}.stats-grid{gap:9px}.stat-card{padding:13px}.stat-card strong{font-size:25px}.content-grid{grid-template-columns:1fr}.command-card,.panel{padding:15px}.command-heading{align-items:flex-start}.command-footer{gap:10px}.command-footer .primary-button{padding:10px 11px}.lower-grid{margin-top:12px}footer{font-size:8px}}
 @media(max-width:390px){.stats-grid{grid-template-columns:1fr 1fr}.date-chip{display:none}.task-status{font-size:8px}}
+
+.task-card{border:1px solid #ffffff0b;background:#ffffff03;border-radius:11px;padding:8px 9px}
+.task-card .task-row{border:0;background:transparent;padding:2px 0}
+.task-summary{font-size:10px;line-height:1.55;color:#b9b2cc;margin:8px 2px 10px}
+.plan-steps{display:grid;gap:7px;border-top:1px solid var(--line);padding-top:9px;margin-top:4px}
+.plan-label{font-size:8px;letter-spacing:.12em;color:#9388b1;font-weight:700;margin-bottom:2px}
+.plan-step{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;background:#ffffff05;border-radius:8px}
+.step-number{width:18px;height:18px;display:grid;place-items:center;flex:0 0 auto;background:#8c6be52a;color:#c9baff;border-radius:6px;font-size:9px}
+.step-main{flex:1;min-width:0}
+.step-main b{display:block;color:#dcd5ef;font-size:9px;line-height:1.45}
+.step-main small{display:block;color:#918aa4;font-size:9px;line-height:1.45;margin-top:3px}
+.approval-tag{font-size:8px;color:#f0c77e;background:#57422255;border:1px solid #d6a95833;border-radius:20px;padding:4px 6px;white-space:nowrap}
