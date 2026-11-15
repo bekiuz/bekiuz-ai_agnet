@@ -57,14 +57,33 @@ function renderProjects(projects) {
     </div>`).join("") : '<div class="empty-state">Hali loyihalar qo‘shilmagan.</div>';
 }
 
-function renderTasks(tasks) {
+function renderTasks(tasks, taskSteps = []) {
   $("#task-count").textContent = tasks.length;
-  $("#tasks-list").innerHTML = tasks.length ? tasks.map(task => `
-    <div class="task-row">
-      <span class="project-icon">↳</span>
-      <span class="task-main"><b>${escapeHtml(task.title)}</b><small>${escapeHtml(task.assigned_agent || "manager")} · ${escapeHtml(formatDate(task.created_at))}</small></span>
-      <span class="task-status">${escapeHtml(task.status)}</span>
-    </div>`).join("") : '<div class="empty-state">Hozircha vazifalar yo‘q.</div>';
+  const grouped = new Map();
+  for (const step of taskSteps) {
+    if (!grouped.has(step.task_id)) grouped.set(step.task_id, []);
+    grouped.get(step.task_id).push(step);
+  }
+  const agentNames = { manager:"AI Manager",developer:"Developer AI",monitoring:"Monitoring AI",research:"Research AI",business:"Business AI",support:"Support AI",security:"Security AI" };
+  $("#tasks-list").innerHTML = tasks.length ? tasks.map(task => {
+    const steps = grouped.get(task.id) || [];
+    const stepsHtml = steps.map(step => `
+      <div class="plan-step">
+        <span class="step-number">${escapeHtml(step.step_order)}</span>
+        <span class="step-main"><b>${escapeHtml(agentNames[step.agent] || step.agent)} · ${escapeHtml(step.title)}</b><small>${escapeHtml(step.description)}</small></span>
+        ${Number(step.requires_approval) ? '<span class="approval-tag">Tasdiq kerak</span>' : ''}
+      </div>`).join("");
+    return `
+      <article class="task-card">
+        <div class="task-row">
+          <span class="project-icon">✳</span>
+          <span class="task-main"><b>${escapeHtml(task.title)}</b><small>${escapeHtml(formatDate(task.created_at))} · ${escapeHtml(task.priority)}</small></span>
+          <span class="task-status">${escapeHtml(task.status)}</span>
+        </div>
+        ${task.ai_summary ? `<p class="task-summary">${escapeHtml(task.ai_summary)}</p>` : ''}
+        ${stepsHtml ? `<div class="plan-steps"><div class="plan-label">AI ISHCHILARGA TAQSIMLANGAN REJA</div>${stepsHtml}</div>` : ''}
+      </article>`;
+  }).join("") : '<div class="empty-state">Hozircha vazifalar yo‘q.</div>';
 }
 
 async function loadDashboard() {
@@ -74,7 +93,7 @@ async function loadDashboard() {
   $("#stat-active").textContent = data.stats.active ?? 0;
   $("#stat-approvals").textContent = data.stats.pending_approvals ?? 0;
   renderProjects(data.projects || []);
-  renderTasks(data.tasks || []);
+  renderTasks(data.tasks || [], data.taskSteps || []);
 }
 
 async function checkSetup() {
@@ -136,7 +155,7 @@ $("#command-form").addEventListener("submit", async (event) => {
       body: JSON.stringify({ command })
     });
     input.value = "";
-    message.textContent = result.message;
+    message.textContent = result.summary ? result.title + ': ' + result.summary + ' (' + result.steps.length + ' ta ishchi qadami rejalashtirildi).' : result.message;
     await loadDashboard();
   } catch (error) {
     message.style.color = "#ff9eae";
