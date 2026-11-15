@@ -76,6 +76,14 @@ npm run deploy
 
 Health endpoint secret qiymatlarini hech qachon qaytarmaydi.
 
+## GitHub Actions orqali deploy
+
+Repo Settings → Secrets and variables → Actions bo‘limida `CLOUDFLARE_API_TOKEN` nomli secret yarating. Token faqat ushbu accountdagi Workers Scripts edit ruxsati bilan cheklangan bo‘lsin. Tokenni GitHub kodi yoki chatga yozmang.
+
+Keyin GitHub → Actions → **Deploy BEKIUZ AI Manager** workflow'ini qo‘lda ishga tushiring. Deploy workflow faqat manual ishga tushiriladi; har bir commit avtomatik production'ga chiqmaydi.
+
+Deploydan oldin Cloudflare Worker secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`) va D1 migration sozlangan bo‘lishi kerak.
+
 ## Birinchi bosqichda ishlaydigan API
 
 - `GET /api/health`
