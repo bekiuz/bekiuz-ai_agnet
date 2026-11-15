@@ -99,7 +99,10 @@
         <div class="panel" id="integrations">
           <div class="panel-heading"><div><p class="eyebrow">CONNECTED SERVICES</p><h2>Integratsiyalar</h2></div><span class="soon-pill">REJA</span></div>
           <div class="integration-list">
-            <div class="integration-row"><span class="integration-icon github">GH</span><span><b>GitHub</b><small>Repository va kodlar</small></span><em>Ulanmagan</em></div>
+            <div class="integration-row"><span class="integration-icon github">GH</span><span><b>GitHub</b><small>Read-only repository tekshiruvi</small></span><em id="github-integration-status">Tayyor</em></div>
+            <button id="github-scan-button" class="primary-button github-scan-button" type="button">GitHub loyihalarini tekshirish <span>→</span></button>
+            <p id="github-scan-message" class="form-message github-scan-message" role="status">Ochiq repositorylar token talab qilmaydi. Private repositorylar uchun keyin alohida ruxsat beriladi.</p>
+            <div id="github-scan-results" class="github-scan-results"><div class="empty-state">Hali GitHub tekshiruvi bajarilmagan.</div></div>
             <div class="integration-row"><span class="integration-icon cloud">CF</span><span><b>Cloudflare</b><small>Workers va hosting</small></span><em>Ulanmagan</em></div>
             <div class="integration-row"><span class="integration-icon telegram">TG</span><span><b>Telegram</b><small>Buyruq va xabarnomalar</small></span><em>Ulanmagan</em></div>
           </div>
