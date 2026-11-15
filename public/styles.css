@@ -16,3 +16,19 @@
 .step-main b{display:block;color:#dcd5ef;font-size:9px;line-height:1.45}
 .step-main small{display:block;color:#918aa4;font-size:9px;line-height:1.45;margin-top:3px}
 .approval-tag{font-size:8px;color:#f0c77e;background:#57422255;border:1px solid #d6a95833;border-radius:20px;padding:4px 6px;white-space:nowrap}
+
+
+.github-scan-button{width:100%;margin-top:12px;font-size:11px}
+.github-scan-message{margin-top:9px;line-height:1.5;color:#aaa1c2}
+.github-scan-results{display:grid;gap:7px;margin-top:10px}
+.github-result-row{padding:10px;border:1px solid #ffffff0b;background:#ffffff04;border-radius:9px;display:grid;gap:4px;min-width:0}
+.github-result-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.github-result-top b{font-size:10px}
+.github-result-row small{font-size:9px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.github-result-status{font-size:8px;color:var(--amber);white-space:nowrap}
+.github-files{color:#aaa0c8!important}
+.github-error{color:#e5b76e!important}
+.project-main .project-commit{color:#a99acb}
+.project-status.github-ok:before{background:var(--green)}
+.project-status.github-warn:before{background:var(--amber)}
+.github-scan-button:disabled{opacity:.6;cursor:wait}
