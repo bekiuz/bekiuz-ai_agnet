@@ -245,6 +245,48 @@ async function refreshIntegrations() {
   }
 }
 
+function renderDeveloperProjectOptions(projects = []) {
+  const select = $("#developer-project");
+  if (!select) return;
+  const previous = select.value;
+  const eligible = projects.filter(project => project.repo_url);
+  select.innerHTML = '<option value="">Loyiha tanlang</option>' + eligible.map(project =>
+    '<option value="' + escapeHtml(project.id) + '">' + escapeHtml(project.name) + ' · ' + escapeHtml(shortRepo(project.repo_url)) + '</option>'
+  ).join("");
+  if (eligible.some(project => project.id === previous)) select.value = previous;
+}
+
+$("#developer-analyze-button").addEventListener("click", async () => {
+  const button = $("#developer-analyze-button");
+  const message = $("#developer-message");
+  const resultBox = $("#developer-result");
+  const projectId = $("#developer-project").value;
+  const task = $("#developer-task").value.trim();
+  if (!projectId || !task) {
+    message.textContent = "Loyiha va vazifani kiriting.";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Tahlil qilinmoqda…";
+  resultBox.classList.add("hidden");
+  message.textContent = "Developer AI repositoryni tekshirmoqda…";
+  try {
+    const result = await api("/api/agents/developer/analyze", {
+      method: "POST",
+      body: JSON.stringify({ projectId, task })
+    });
+    const analysis = result.result || {};
+    resultBox.textContent = JSON.stringify(analysis, null, 2);
+    resultBox.classList.remove("hidden");
+    message.textContent = "Tahlil yakunlandi. " + (analysis.root_files?.length || 0) + " ta root fayl topildi.";
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = "Developer AI'ga yuborish <span>→</span>";
+  }
+});
+
 async function loadDashboard() {
   const data = await api("/api/bootstrap");
   $("#stat-projects").textContent = data.stats.projects ?? 0;
@@ -252,6 +294,7 @@ async function loadDashboard() {
   $("#stat-active").textContent = data.stats.active ?? 0;
   $("#stat-approvals").textContent = data.stats.pending_approvals ?? 0;
   renderProjects(data.projects || []);
+  renderDeveloperProjectOptions(data.projects || []);
   renderGitHubResults((data.projects || []).filter(project => project.github_status).map(project => ({
     name: project.name,
     repository: shortRepo(project.repo_url),
