@@ -572,7 +572,7 @@ async function handleApi(request, env) {
       env.DB.prepare("SELECT id, title, operation, requested_at FROM approvals WHERE status = 'pending' ORDER BY requested_at DESC LIMIT 10").all(),
       env.DB.prepare("SELECT id, action, target_type, target_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12").all(),
       env.DB.prepare("SELECT project_id, checked_at, status, is_private, default_branch, last_commit_at, last_commit_message, root_files_json, error FROM project_checks WHERE provider = 'github'").all(),
-      env.DB.prepare("SELECT project_id, checked_at, status, target_url, http_status, response_ms, error FROM monitoring_checks").all()
+      env.DB.prepare("SELECT m.project_id, p.name, m.checked_at, m.status, m.target_url, m.http_status, m.response_ms, m.error FROM monitoring_checks m JOIN projects p ON p.id = m.project_id").all()
     ]);
     return json({
       stats: counts || { projects: 0, tasks: 0, active: 0, pending_approvals: 0 },
