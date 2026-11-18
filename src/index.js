@@ -586,6 +586,26 @@ async function handleApi(request, env) {
     });
   }
 
+
+  const deploymentUrlMatch = path.match(/^\/api\/projects\/([^/]+)\/deployment-url$/);
+  if (deploymentUrlMatch && method === "PUT") {
+    let body;
+    try { body = await readJson(request); } catch (error) {
+      return json({ error: "INVALID_REQUEST", message: error.message }, 400);
+    }
+    const projectId = decodeURIComponent(deploymentUrlMatch[1]);
+    const deploymentUrl = typeof body.deploymentUrl === "string" ? body.deploymentUrl.trim().slice(0, 1000) : "";
+    if (deploymentUrl && !validateMonitoringUrl(deploymentUrl)) {
+      return json({ error: "VALIDATION_ERROR", message: "Faqat to‘g‘ri HTTPS deployment URL kiriting." }, 400);
+    }
+    const project = await env.DB.prepare("SELECT id, name FROM projects WHERE id = ?").bind(projectId).first();
+    if (!project) return json({ error: "PROJECT_NOT_FOUND", message: "Loyiha topilmadi." }, 404);
+    await env.DB.prepare("UPDATE projects SET deployment_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .bind(deploymentUrl || null, projectId).run();
+    await audit(env, "project.deployment_url_updated", "project", projectId, { name: project.name, configured: Boolean(deploymentUrl) });
+    return json({ ok: true, projectId, deploymentUrl: deploymentUrl || null });
+  }
+
   if (path === "/api/projects" && method === "POST") {
     let body;
     try { body = await readJson(request); } catch (error) {
