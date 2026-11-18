@@ -622,6 +622,7 @@ async function ensureIntegrationRegistry(env) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+  await env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_integrations_provider_unique ON integrations(provider)").run();
 }
 
 async function checkProviderConnection(provider, env) {
