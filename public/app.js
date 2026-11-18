@@ -289,6 +289,37 @@ $("#github-scan-button").addEventListener("click", async () => {
   }
 });
 
+$("#discover-deployments-button").addEventListener("click", async () => {
+  const button = $("#discover-deployments-button");
+  const message = $("#discover-deployments-message");
+  button.disabled = true;
+  button.textContent = "GitHub va Netlify qidirilmoqda…";
+  message.textContent = "Repository metadata, GitHub Pages va Netlify’dagi bog‘langan deploylar tekshirilmoqda.";
+  try {
+    const result = await api("/api/integrations/deployments/discover", { method: "POST", body: "{}" });
+    const sources = result.results.filter(item => item.status === "discovered").reduce((counts, item) => {
+      counts[item.source] = (counts[item.source] || 0) + 1;
+      return counts;
+    }, {});
+    const sourceText = [
+      sources.netlify ? "Netlify: " + sources.netlify : "",
+      sources.github_pages ? "GitHub Pages: " + sources.github_pages : "",
+      sources.github_homepage ? "GitHub homepage: " + sources.github_homepage : ""
+    ].filter(Boolean).join(" · ");
+    message.textContent = result.discovered + " ta yangi sayt manzili topilib saqlandi. " +
+      result.alreadyConfigured + " tasida manzil oldindan bor, " + result.notFound + " tasida mos manzil topilmadi." +
+      (sourceText ? " " + sourceText + "." : "") +
+      (!result.netlifyConfigured ? " Netlify’ni avtomatik tekshirish uchun Worker’ga NETLIFY_ACCESS_TOKEN secret’i kerak." : "") +
+      (result.netlifyError ? " " + result.netlifyError : "");
+    await loadDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Sayt linklarini avtomatik topish <span>✦</span>';
+  }
+});
+
 $("#monitoring-scan-button").addEventListener("click", async () => {
   const button = $("#monitoring-scan-button");
   const message = $("#monitoring-message");
