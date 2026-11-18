@@ -70,6 +70,10 @@ function renderProjects(projects) {
       <span class="project-icon">${escapeHtml((project.name || "P").slice(0, 1).toUpperCase())}</span>
       <span class="project-main"><b>${escapeHtml(project.name)}</b><small>${escapeHtml(shortRepo(project.repo_url))}</small>${commit}</span>
       <span class="project-status ${status === "healthy" ? "github-ok" : status === "permission_required" ? "github-warn" : ""}">${escapeHtml(githubStatusLabel(status))}</span>
+      <form class="project-url-form" data-deployment-url="${escapeHtml(project.id)}">
+        <input type="url" aria-label="${escapeHtml(project.name)} deployment URL" placeholder="https://sayt-manzili..." value="${escapeHtml(project.deployment_url || "")}">
+        <button type="submit">Saqlash</button>
+      </form>
     </div>`;
   }).join("") : '<div class="empty-state">Hali loyihalar qo‘shilmagan.</div>';
 }
@@ -167,6 +171,29 @@ function renderTasks(tasks, taskSteps = []) {
       </article>`;
   }).join("") : '<div class="empty-state">Hozircha vazifalar yo‘q.</div>';
 }
+
+
+$("#projects-list").addEventListener("submit", async (event) => {
+  const form = event.target.closest("form[data-deployment-url]");
+  if (!form) return;
+  event.preventDefault();
+  const button = form.querySelector("button");
+  const input = form.querySelector("input");
+  button.disabled = true;
+  button.textContent = "Saqlanmoqda…";
+  try {
+    await api("/api/projects/" + encodeURIComponent(form.dataset.deploymentUrl) + "/deployment-url", {
+      method: "PUT",
+      body: JSON.stringify({ deploymentUrl: input.value.trim() })
+    });
+    await loadDashboard();
+    $("#monitoring-message").textContent = "Deployment manzili saqlandi. Endi monitoringni ishga tushiring.";
+  } catch (error) {
+    $("#monitoring-message").textContent = error.message;
+    button.disabled = false;
+    button.textContent = "Saqlash";
+  }
+});
 
 $("#tasks-list").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-cancel-task]");
