@@ -32,7 +32,7 @@
     <aside class="sidebar">
       <a class="brand" href="#"><span class="brand-mark small">B<span>•</span></span><span>BEKIUZ <b>AI</b><small>MANAGER</small></span></a>
       <div class="sidebar-label">BOSHQARUV</div>
-      <nav>
+      <nav aria-label="Asosiy navigatsiya">
         <a class="nav-item active" href="#overview"><span>◫</span> Umumiy holat</a>
         <a class="nav-item" href="#projects"><span>▦</span> Loyihalar</a>
         <a class="nav-item" href="#tasks"><span>☷</span> Vazifalar</a>
@@ -45,7 +45,7 @@
       </div>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content">
       <header class="topbar">
         <div><p class="eyebrow">PERSONAL AI OPERATIONS</p><h1>Control Center</h1></div>
         <div class="topbar-right"><button id="refresh-dashboard-button" class="secondary-button" type="button">Yangilash ↻</button><span class="live-indicator"><i></i> LIVE DASHBOARD</span><div class="top-avatar" aria-label="BEKIUZ owner">B</div></div>
@@ -66,7 +66,8 @@
       <section class="command-card">
         <div class="command-heading"><div class="command-icon">✳</div><div><p class="eyebrow">AI MANAGER COMMAND</p><h2>Vazifa yuborish</h2><p class="muted">Buyrug‘ingni yoz. AI Manager uni tahlil qiladi va tegishli AI ishchilarga rejalashtirib taqsimlaydi.</p></div></div>
         <form id="command-form" class="command-form">
-          <textarea id="command-input" rows="2" maxlength="2000" placeholder="Masalan: Bekiuz Company loyihasini tekshirish rejasini tuz…"></textarea>
+          <textarea id="command-input" rows="2" maxlength="2000" aria-label="AI Manager uchun vazifa" placeholder="Masalan: Bekiuz Company loyihasini tekshirish rejasini tuz…"></textarea>
+          <div class="command-meta"><span>Vazifani aniq yozing — AI Manager uni rejalashtiradi.</span><span id="command-counter">0 / 2000</span></div>
           <div class="command-footer"><span>2000 belgigacha</span><button class="primary-button" type="submit">AI Manager’ga topshirish <span>→</span></button></div>
         </form>
         <p id="command-message" class="form-message" role="status"></p>
