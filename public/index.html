@@ -48,7 +48,7 @@
     <main class="main-content">
       <header class="topbar">
         <div><p class="eyebrow">PERSONAL AI OPERATIONS</p><h1>Control Center</h1></div>
-        <div class="topbar-right"><span class="live-indicator"><i></i> LOCAL DASHBOARD</span><div class="top-avatar">B</div></div>
+        <div class="topbar-right"><button id="refresh-dashboard-button" class="secondary-button" type="button">Yangilash ↻</button><span class="live-indicator"><i></i> LIVE DASHBOARD</span><div class="top-avatar" aria-label="BEKIUZ owner">B</div></div>
       </header>
 
       <section class="welcome-row">
@@ -76,12 +76,14 @@
       <section class="content-grid">
         <div class="panel" id="projects">
           <div class="panel-heading"><div><p class="eyebrow">PROJECT REGISTRY</p><h2>Loyihalarim</h2></div><span id="project-count" class="count-pill">0</span></div>
+          <input id="project-search" class="panel-search" type="search" placeholder="Loyiha nomi yoki repository bo‘yicha qidirish…" aria-label="Loyihalarni qidirish">
           <button id="discover-deployments-button" class="primary-button discover-button" type="button">Sayt linklarini avtomatik topish <span>✦</span></button>
           <p id="discover-deployments-message" class="form-message discover-message" role="status">GitHub Pages va Netlify’dagi mos deploylar qidiriladi. Mavjud qo‘lda kiritilgan manzillar o‘zgartirilmaydi.</p>
           <div id="projects-list" class="projects-list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
         </div>
         <div class="panel" id="tasks">
           <div class="panel-heading"><div><p class="eyebrow">TASK QUEUE</p><h2>So‘nggi vazifalar</h2></div><span id="task-count" class="count-pill">0</span></div>
+          <input id="task-search" class="panel-search" type="search" placeholder="Vazifa nomi yoki holati bo‘yicha qidirish…" aria-label="Vazifalarni qidirish">
           <div id="tasks-list" class="tasks-list"><div class="empty-state">Ma’lumot yuklanmoqda…</div></div>
         </div>
       </section>
