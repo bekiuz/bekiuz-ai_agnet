@@ -81,7 +81,7 @@ function renderProjects(projects) {
         <button type="submit">Saqlash</button>
       </form>
     </div>`;
-  }).join("") : '<div class="empty-state">Hali loyihalar qo‘shilmagan.</div>';
+  }).join("") : `<div class="empty-state">${query ? "Qidiruv bo‘yicha loyiha topilmadi." : "Hali loyihalar qo‘shilmagan."}</div>`;
 }
 
 function renderGitHubResults(checks = []) {
