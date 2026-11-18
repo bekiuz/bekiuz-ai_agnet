@@ -101,12 +101,22 @@
         <div class="panel" id="agents">
           <div class="panel-heading"><div><p class="eyebrow">SPECIALIST TEAM</p><h2>AI jamoa</h2></div><span class="soon-pill">KEYINGI BOSQICH</span></div>
           <div class="agent-list">
-            <div class="agent-row"><span class="agent-symbol">✳</span><span><b>AI Manager</b><small>Markaziy boshqaruvchi</small></span><em class="status-pending">Tayyorlanmoqda</em></div>
-            <div class="agent-row"><span class="agent-symbol">⌘</span><span><b>Developer AI</b><small>Kod va testlar</small></span><em class="status-pending">Ulanmagan</em></div>
-            <div class="agent-row"><span class="agent-symbol">◉</span><span><b>Monitoring AI</b><small>Sayt va servislar</small></span><em class="status-pending">Ulanmagan</em></div>
-            <div class="agent-row"><span class="agent-symbol">⌕</span><span><b>Research AI</b><small>Izlanish va rejalash</small></span><em class="status-pending">Ulanmagan</em></div>
-            <div class="agent-row"><span class="agent-symbol">▤</span><span><b>Business AI</b><small>Mijozlar va biznes</small></span><em class="status-pending">Ulanmagan</em></div>
-            <div class="agent-row"><span class="agent-symbol">♧</span><span><b>Security AI</b><small>Ruxsatlar va xavfsizlik</small></span><em class="status-pending">Ulanmagan</em></div>
+            <div class="agent-row"><span class="agent-symbol">✳</span><span><b>AI Manager</b><small>Markaziy boshqaruvchi</small></span><em class="status-ready">Faol</em></div>
+            <div class="agent-row"><span class="agent-symbol">⌘</span><span><b>Developer AI</b><small>GitHub repository tahlili · Read-only</small></span><em class="status-ready">Ulangan</em></div>
+            <div class="agent-row"><span class="agent-symbol">◉</span><span><b>Monitoring AI</b><small>Sayt va servislar</small></span><em class="status-pending">Keyingi bosqich</em></div>
+            <div class="agent-row"><span class="agent-symbol">⌕</span><span><b>Research AI</b><small>Izlanish va rejalash</small></span><em class="status-pending">Keyingi bosqich</em></div>
+            <div class="agent-row"><span class="agent-symbol">▤</span><span><b>Business AI</b><small>Mijozlar va biznes</small></span><em class="status-pending">Keyingi bosqich</em></div>
+            <div class="agent-row"><span class="agent-symbol">♧</span><span><b>Security AI</b><small>Ruxsatlar va xavfsizlik</small></span><em class="status-pending">Keyingi bosqich</em></div>
+          </div>
+          <div class="developer-console">
+            <div class="developer-console-heading"><b>Developer AI bilan ishlash</b><span>READ-ONLY</span></div>
+            <label for="developer-project">Loyiha</label>
+            <select id="developer-project"><option value="">Loyiha tanlang</option></select>
+            <label for="developer-task">Vazifa</label>
+            <textarea id="developer-task" rows="3" maxlength="2000" placeholder="Masalan: Repository tuzilmasini tahlil qil va keyingi tekshiriladigan fayllarni ayt."></textarea>
+            <button id="developer-analyze-button" class="primary-button" type="button">Developer AI'ga yuborish <span>→</span></button>
+            <p id="developer-message" class="form-message" role="status">Developer AI faqat o‘qiydi va tahlil qiladi. Kodni o‘zgartirmaydi.</p>
+            <pre id="developer-result" class="developer-result hidden"></pre>
           </div>
         </div>
         <div class="panel" id="integrations">
