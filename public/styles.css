@@ -52,3 +52,12 @@
 .status-offline{color:#ff9eae;background:#ff647a18}
 .monitoring-scan-button:disabled{opacity:.6;cursor:wait}
 @media(max-width:760px){.monitoring-results{grid-template-columns:1fr}}
+
+.project-url-form{display:flex;gap:6px;width:100%;margin-top:7px}
+.project-url-form input{min-width:0;flex:1;height:30px;background:#0b0a13;border:1px solid var(--line);border-radius:7px;padding:0 8px;color:#eee;font-size:9px;outline:none}
+.project-url-form input:focus{border-color:#9274eb}
+.project-url-form button{border:1px solid #a78bfa35;background:#8b6ce522;color:#d7caff;border-radius:7px;padding:0 9px;font-size:9px;font-weight:600}
+.project-url-form button:disabled{opacity:.55;cursor:wait}
+.project-row{display:flex;flex-wrap:wrap}
+.project-main{flex:1 1 130px}
+.project-row .project-url-form{flex:1 0 100%}
