@@ -102,6 +102,42 @@ function renderGitHubResults(checks = []) {
   }
 }
 
+
+function monitoringStatusLabel(status) {
+  return ({
+    online: "Ishlayapti",
+    http_error: "HTTP xatosi",
+    offline: "Ishlamayapti",
+    not_configured: "URL sozlanmagan",
+    invalid_url: "URL noto‘g‘ri"
+  })[status] || "Tekshirilmagan";
+}
+
+function renderMonitoringResults(checks = []) {
+  const target = $("#monitoring-results");
+  if (!checks.length) {
+    target.innerHTML = '<div class="empty-state">Hali monitoring tekshiruvi bajarilmagan.</div>';
+    return;
+  }
+  const online = checks.filter(item => item.status === "online").length;
+  const missing = checks.filter(item => item.status === "not_configured").length;
+  $("#monitoring-summary").textContent = online + "/" + checks.length + " online";
+  target.innerHTML = checks.map(item => {
+    const details = [
+      item.http_status ? "HTTP " + item.http_status : "",
+      item.response_ms !== null && item.response_ms !== undefined ? item.response_ms + " ms" : "",
+      item.checked_at ? formatDate(item.checked_at) : ""
+    ].filter(Boolean).join(" · ");
+    return `<div class="monitoring-result-row">
+      <div class="monitoring-result-top"><b>${escapeHtml(item.name || "Loyiha")}</b><span class="monitoring-status status-${escapeHtml(item.status)}">${escapeHtml(monitoringStatusLabel(item.status))}</span></div>
+      <small>${escapeHtml(item.target_url || "Deployment URL kiritilmagan")}</small>
+      ${details ? `<small>${escapeHtml(details)}</small>` : ""}
+      ${item.error ? `<small class="github-error">${escapeHtml(item.error)}</small>` : ""}
+    </div>`;
+  }).join("");
+  $("#monitoring-message").textContent = online + " ta loyiha javob berdi, " + missing + " tasida deployment URL sozlanmagan.";
+}
+
 function renderTasks(tasks, taskSteps = []) {
   $("#task-count").textContent = tasks.length;
   const grouped = new Map();
@@ -167,6 +203,7 @@ async function loadDashboard() {
     error: project.github_error
   })));
   renderTasks(data.tasks || [], data.taskSteps || []);
+  renderMonitoringResults(data.monitoringChecks || []);
 }
 
 async function checkSetup() {
@@ -222,6 +259,24 @@ $("#github-scan-button").addEventListener("click", async () => {
   } finally {
     button.disabled = false;
     button.innerHTML = 'GitHub loyihalarini tekshirish <span>→</span>';
+  }
+});
+
+$("#monitoring-scan-button").addEventListener("click", async () => {
+  const button = $("#monitoring-scan-button");
+  const message = $("#monitoring-message");
+  button.disabled = true;
+  button.textContent = "Saytlar tekshirilmoqda…";
+  message.textContent = "Har bir sozlangan HTTPS manziliga xavfsiz so‘rov yuborilmoqda (8 soniyagacha).";
+  try {
+    const result = await api("/api/monitoring/scan", { method: "POST", body: "{}" });
+    message.textContent = result.online + "/" + result.total + " ta loyiha online. URL sozlanmagan: " + result.notConfigured + ".";
+    await loadDashboard();
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Sayt va servislarni tekshirish <span>→</span>';
   }
 });
 
