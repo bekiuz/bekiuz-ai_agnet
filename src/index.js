@@ -728,6 +728,48 @@ async function handleApi(request, env) {
   const dbError = await requireDatabase(env);
   if (dbError) return dbError;
 
+  if (path === "/api/agents/developer/analyze" && method === "POST") {
+    let body;
+    try { body = await readJson(request); } catch (error) {
+      return json({ error: "INVALID_REQUEST", message: error.message }, 400);
+    }
+    const projectId = typeof body.projectId === "string" ? body.projectId : "";
+    const task = typeof body.task === "string" ? body.task.trim().slice(0, 2000) : "";
+    if (!projectId || !task) {
+      return json({ error: "VALIDATION_ERROR", message: "projectId va task kerak." }, 400);
+    }
+    if (!env.GITHUB_TOKEN || !env.DEVELOPER_AI_SHARED_SECRET) {
+      return json({ error: "DEVELOPER_AGENT_NOT_CONFIGURED", message: "Developer AI uchun GitHub yoki xizmat kaliti sozlanmagan." }, 503);
+    }
+    const project = await env.DB.prepare(
+      "SELECT id, name, repo_url FROM projects WHERE id = ?"
+    ).bind(projectId).first();
+    if (!project) return json({ error: "PROJECT_NOT_FOUND", message: "Loyiha topilmadi." }, 404);
+    const repo = parseGitHubRepo(project.repo_url || "");
+    if (!repo) return json({ error: "REPOSITORY_NOT_CONFIGURED", message: "Bu loyihaga GitHub repository ulanmagan." }, 400);
+    try {
+      const response = await fetch("https://bekiuz-developer-ai.bekiuz67.workers.dev/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + env.DEVELOPER_AI_SHARED_SECRET,
+          "X-GitHub-Token": env.GITHUB_TOKEN
+        },
+        body: JSON.stringify({ repository: repo.fullName, task }),
+        signal: AbortSignal.timeout(25000)
+      });
+      const result = await response.json().catch(() => ({}));
+      await audit(env, "agent.developer.analyzed", "project", project.id, {
+        project: project.name, repository: repo.fullName, ok: response.ok
+      });
+      return json({ ok: response.ok, agent: "developer", projectId, projectName: project.name, result },
+        response.ok ? 200 : (response.status >= 400 && response.status < 500 ? response.status : 502));
+    } catch (error) {
+      console.error("Developer AI request failed:", error);
+      return json({ error: "DEVELOPER_AGENT_UNAVAILABLE", message: "Developer AI bilan bog‘lanib bo‘lmadi." }, 502);
+    }
+  }
+
   if (path === "/api/bootstrap" || path === "/api/integrations/github/scan") {
     await ensureGitHubTables(env);
   }
