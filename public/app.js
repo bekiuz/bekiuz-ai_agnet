@@ -290,7 +290,7 @@ $("#developer-analyze-button").addEventListener("click", async () => {
     const analysis = result.result || {};
     const info = analysis.repository_info || {};
     const files = Array.isArray(analysis.root_files) ? analysis.root_files : [];
-    const fileList = files.length ? files.map(file => "• " + file.path + (file.type === "dir" ? "/" : "")).join("\\n") : "Root fayllar ro‘yxati topilmadi.";
+    const fileList = files.length ? files.map(file => "• " + file.path + (file.type === "dir" ? "/" : "")).join("\n") : "Root fayllar ro‘yxati topilmadi.";
     const report = [
       "REPOSITORY: " + (analysis.repository || "—"),
       "Asosiy branch: " + (info.default_branch || "—"),
@@ -304,7 +304,7 @@ $("#developer-analyze-button").addEventListener("click", async () => {
       fileList,
       "",
       "CHEKLOV: Read-only. Fayllar o‘zgartirilmadi, commit yoki deploy qilinmadi."
-    ].join("\\n");
+    ].join("\n");
     resultBox.textContent = report;
     resultBox.classList.remove("hidden");
     message.textContent = "Tahlil yakunlandi. " + files.length + " ta root element ko‘rib chiqildi.";
