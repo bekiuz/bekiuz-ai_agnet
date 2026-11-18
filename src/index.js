@@ -762,8 +762,14 @@ async function handleApi(request, env) {
       await audit(env, "agent.developer.analyzed", "project", project.id, {
         project: project.name, repository: repo.fullName, ok: response.ok
       });
-      return json({ ok: response.ok, agent: "developer", projectId, projectName: project.name, result },
-        response.ok ? 200 : (response.status >= 400 && response.status < 500 ? response.status : 502));
+      return json({
+        ok: response.ok,
+        agent: "developer",
+        projectId,
+        projectName: project.name,
+        message: response.ok ? "Tahlil muvaffaqiyatli yakunlandi." : String(result.error || result.message || ("Developer AI HTTP " + response.status)),
+        result
+      }, response.ok ? 200 : (response.status >= 400 && response.status < 500 ? response.status : 502));
     } catch (error) {
       console.error("Developer AI request failed:", error);
       return json({ error: "DEVELOPER_AGENT_UNAVAILABLE", message: "Developer AI bilan bog‘lanib bo‘lmadi." }, 502);
