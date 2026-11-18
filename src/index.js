@@ -393,7 +393,7 @@ function validateMonitoringUrl(value) {
     const host = url.hostname.toLowerCase();
     if (url.protocol !== "https:" || url.username || url.password) return null;
     if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) return null;
-    if (/^(127\\.|10\\.|192\\.168\\.|169\\.254\\.)/.test(host) || /^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(host) || host === "0.0.0.0") return null;
+    if (/^(127\.|10\.|192\.168\.|169\.254\.)/.test(host) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host) || host === "0.0.0.0") return null;
     if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return null;
     return url;
   } catch {
