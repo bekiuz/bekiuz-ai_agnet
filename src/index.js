@@ -758,16 +758,24 @@ async function handleApi(request, env) {
         body: JSON.stringify({ repository: repo.fullName, task }),
         signal: AbortSignal.timeout(25000)
       });
-      const result = await response.json().catch(() => ({}));
+      const responseText = await response.text();
+      let result = {};
+      try { result = responseText ? JSON.parse(responseText) : {}; } catch {
+        result = { raw_response: responseText.slice(0, 500) };
+      }
       await audit(env, "agent.developer.analyzed", "project", project.id, {
-        project: project.name, repository: repo.fullName, ok: response.ok
+        project: project.name, repository: repo.fullName, ok: response.ok,
+        upstreamStatus: response.status, contentType: response.headers.get("content-type") || ""
       });
+      const upstreamMessage = result.error || result.message ||
+        (result.raw_response ? "Developer AI javobi: " + result.raw_response :
+          "Developer AI HTTP " + response.status + " (" + (response.headers.get("content-type") || "content-type yo‘q") + ")");
       return json({
         ok: response.ok,
         agent: "developer",
         projectId,
         projectName: project.name,
-        message: response.ok ? "Tahlil muvaffaqiyatli yakunlandi." : String(result.error || result.message || ("Developer AI HTTP " + response.status)),
+        message: response.ok ? "Tahlil muvaffaqiyatli yakunlandi." : String(upstreamMessage),
         result
       }, response.ok ? 200 : (response.status >= 400 && response.status < 500 ? response.status : 502));
     } catch (error) {
