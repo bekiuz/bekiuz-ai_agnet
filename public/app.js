@@ -213,6 +213,38 @@ $("#tasks-list").addEventListener("click", async (event) => {
   }
 });
 
+function renderIntegrationCards(items = []) {
+  const target = $("#integration-cards");
+  const labels = { connected: "Ulangan", not_connected: "Ulanmagan", error: "Tekshiruv xatosi" };
+  const icons = { github: "GH", netlify: "N", cloudflare: "CF" };
+  target.innerHTML = items.map(item => {
+    const connected = item.status === "connected";
+    return `<div class="integration-card">
+      <div class="integration-card-top">
+        <span class="integration-icon ${escapeHtml(item.provider)}">${icons[item.provider] || "↗"}</span>
+        <span class="integration-state ${connected ? "connected" : item.status === "error" ? "failed" : ""}">${labels[item.status] || "Noma’lum"}</span>
+      </div>
+      <b>${escapeHtml(item.label)}</b>
+      <small>${escapeHtml(item.accountLabel || item.permission || "")}</small>
+      <div class="integration-card-bottom">
+        <span>${connected ? "Server tokeni tasdiqlandi" : "Secret: " + escapeHtml(item.secretName)}</span>
+        ${item.error ? `<small class="github-error">${escapeHtml(item.error)}</small>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function refreshIntegrations() {
+  const target = $("#integration-cards");
+  target.innerHTML = '<div class="empty-state">Akkauntlar tekshirilmoqda…</div>';
+  try {
+    const result = await api("/api/integrations/status");
+    renderIntegrationCards(result.integrations || []);
+  } catch (error) {
+    target.innerHTML = '<div class="empty-state">' + escapeHtml(error.message) + '</div>';
+  }
+}
+
 async function loadDashboard() {
   const data = await api("/api/bootstrap");
   $("#stat-projects").textContent = data.stats.projects ?? 0;
@@ -231,6 +263,7 @@ async function loadDashboard() {
   })));
   renderTasks(data.tasks || [], data.taskSteps || []);
   renderMonitoringResults(data.monitoringChecks || []);
+  await refreshIntegrations();
 }
 
 async function checkSetup() {
@@ -270,6 +303,8 @@ $("#login-form").addEventListener("submit", async (event) => {
     button.innerHTML = 'Tizimga kirish <span>→</span>';
   }
 });
+
+$("#refresh-integrations-button").addEventListener("click", refreshIntegrations);
 
 $("#github-scan-button").addEventListener("click", async () => {
   const button = $("#github-scan-button");
