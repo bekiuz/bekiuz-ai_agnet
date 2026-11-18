@@ -288,9 +288,26 @@ $("#developer-analyze-button").addEventListener("click", async () => {
       body: JSON.stringify({ projectId, task })
     });
     const analysis = result.result || {};
-    resultBox.textContent = JSON.stringify(analysis, null, 2);
+    const info = analysis.repository_info || {};
+    const files = Array.isArray(analysis.root_files) ? analysis.root_files : [];
+    const fileList = files.length ? files.map(file => "• " + file.path + (file.type === "dir" ? "/" : "")).join("\\n") : "Root fayllar ro‘yxati topilmadi.";
+    const report = [
+      "REPOSITORY: " + (analysis.repository || "—"),
+      "Asosiy branch: " + (info.default_branch || "—"),
+      "Til: " + (info.language || "Aniqlanmagan"),
+      "Ko‘rinishi: " + (info.visibility || "—"),
+      "",
+      "AI TAHLILI:",
+      analysis.ai_review || "AI xulosasi mavjud emas.",
+      "",
+      "ROOT FAYLLAR (" + files.length + "):",
+      fileList,
+      "",
+      "CHEKLOV: Read-only. Fayllar o‘zgartirilmadi, commit yoki deploy qilinmadi."
+    ].join("\\n");
+    resultBox.textContent = report;
     resultBox.classList.remove("hidden");
-    message.textContent = "Tahlil yakunlandi. " + (analysis.root_files?.length || 0) + " ta root fayl topildi.";
+    message.textContent = "Tahlil yakunlandi. " + files.length + " ta root element ko‘rib chiqildi.";
   } catch (error) {
     message.textContent = error.message;
   } finally {
@@ -361,6 +378,16 @@ $("#login-form").addEventListener("submit", async (event) => {
 
 $("#refresh-integrations-button").addEventListener("click", refreshIntegrations);
 $("#project-search").addEventListener("input", () => renderProjects(dashboardProjects));
+const commandInput = $("#command-input");
+const commandCounter = $("#command-counter");
+function updateCommandCounter() {
+  if (commandCounter) commandCounter.textContent = `${commandInput.value.length} / 2000`;
+}
+commandInput.addEventListener("input", updateCommandCounter);
+updateCommandCounter();
+commandInput.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") $("#command-form").requestSubmit();
+});
 $("#task-search").addEventListener("input", () => renderTasks(dashboardTasks, dashboardTaskSteps));
 $("#refresh-dashboard-button").addEventListener("click", async () => {
   const button = $("#refresh-dashboard-button");
