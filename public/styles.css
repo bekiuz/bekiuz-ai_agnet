@@ -65,3 +65,24 @@
 .discover-button{width:100%;margin:0 0 8px;font-size:11px}
 .discover-message{margin:0 0 10px;line-height:1.5;color:#aaa1c2}
 .discover-button:disabled{opacity:.6;cursor:wait}
+
+.integration-intro{font-size:11px;margin:-6px 0 14px}
+.integration-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.integration-card{min-width:0;padding:13px;border:1px solid var(--line);border-radius:12px;background:#0d0c16;display:flex;flex-direction:column;gap:7px}
+.integration-card-top{display:flex;justify-content:space-between;align-items:center}
+.integration-card>b{font-size:12px}
+.integration-card>small{font-size:10px;color:var(--muted);overflow-wrap:anywhere;min-height:28px}
+.integration-state{font-size:9px;color:var(--amber);background:#e6b96c14;padding:5px 7px;border-radius:20px}
+.integration-state.connected{color:var(--green);background:#64d7a214}
+.integration-state.failed{color:#ff9eae;background:#ff9eae14}
+.integration-card-bottom{border-top:1px solid var(--line);padding-top:7px;font-size:9px;color:var(--muted);overflow-wrap:anywhere}
+.integration-card-bottom small{display:block;margin-top:5px}
+.integration-setup-note{margin:12px 0;padding:12px;border:1px solid #a78bfa25;background:#171426;border-radius:10px}
+.integration-setup-note b{font-size:11px}
+.integration-setup-note p{font-size:10px;color:var(--muted);line-height:1.55;margin:6px 0 0}
+.secondary-button{border:1px solid var(--line);background:#201b34;color:#d9d0f4;border-radius:9px;padding:8px 10px;font-size:10px}
+.github-tools{margin-top:15px;padding-top:12px;border-top:1px solid var(--line)}
+.integration-icon.netlify{background:#173d39;color:#7ce5d0}
+.integration-icon.cloudflare{background:#3b2d19;color:#f5bd64}
+.integration-icon.github{background:#292637;color:#e7e1fa}
+@media(max-width:760px){.integration-cards{grid-template-columns:1fr}}
