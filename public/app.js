@@ -3,6 +3,9 @@ const loginScreen = $("#login-screen");
 const appShell = $("#app-shell");
 const loginError = $("#login-error");
 const setupHint = $("#setup-hint");
+let dashboardProjects = [];
+let dashboardTasks = [];
+let dashboardTaskSteps = [];
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -59,8 +62,11 @@ function githubStatusLabel(status) {
 }
 
 function renderProjects(projects) {
-  $("#project-count").textContent = projects.length;
-  $("#projects-list").innerHTML = projects.length ? projects.map(project => {
+  dashboardProjects = projects;
+  const query = ($("#project-search")?.value || "").trim().toLocaleLowerCase("uz");
+  const visible = projects.filter(project => `${project.name || ""} ${shortRepo(project.repo_url)} ${project.github_status || ""}`.toLocaleLowerCase("uz").includes(query));
+  $("#project-count").textContent = query ? `${visible.length}/${projects.length}` : projects.length;
+  $("#projects-list").innerHTML = visible.length ? visible.map(project => {
     const status = project.github_status || "not_checked";
     const commit = project.github_last_commit_message
       ? `<small class="project-commit">${escapeHtml(project.github_last_commit_message)}</small>`
@@ -143,14 +149,20 @@ function renderMonitoringResults(checks = []) {
 }
 
 function renderTasks(tasks, taskSteps = []) {
-  $("#task-count").textContent = tasks.length;
+  dashboardTasks = tasks;
+  dashboardTaskSteps = taskSteps;
+  const query = ($("#task-search")?.value || "").trim().toLocaleLowerCase("uz");
+  const visibleTasks = tasks.filter(task => `${task.title || ""} ${task.description || ""} ${task.status || ""} ${task.priority || ""}`.toLocaleLowerCase("uz").includes(query));
+  $("#task-count").textContent = query ? `${visibleTasks.length}/${tasks.length}` : tasks.length;
   const grouped = new Map();
   for (const step of taskSteps) {
     if (!grouped.has(step.task_id)) grouped.set(step.task_id, []);
     grouped.get(step.task_id).push(step);
   }
   const agentNames = { manager:"AI Manager",developer:"Developer AI",monitoring:"Monitoring AI",research:"Research AI",business:"Business AI",support:"Support AI",security:"Security AI" };
-  $("#tasks-list").innerHTML = tasks.length ? tasks.map(task => {
+  const statusLabels = { planned:"Rejalashtirilgan", in_progress:"Jarayonda", active:"Faol", completed:"Bajarildi", cancelled:"Bekor qilingan", pending:"Kutilmoqda", failed:"Xatolik" };
+  const priorityLabels = { low:"Past", normal:"O‘rtacha", high:"Yuqori" };
+  $("#tasks-list").innerHTML = visibleTasks.length ? visibleTasks.map(task => {
     const steps = grouped.get(task.id) || [];
     const stepsHtml = steps.map(step => `
       <div class="plan-step">
@@ -162,14 +174,14 @@ function renderTasks(tasks, taskSteps = []) {
       <article class="task-card">
         <div class="task-row">
           <span class="project-icon">✳</span>
-          <span class="task-main"><b>${escapeHtml(task.title)}</b><small>${escapeHtml(formatDate(task.created_at))} · ${escapeHtml(task.priority)}</small></span>
-          <span class="task-status">${escapeHtml(task.status)}</span>
+          <span class="task-main"><b>${escapeHtml(task.title)}</b><small>${escapeHtml(formatDate(task.created_at))} · Ustuvorlik: ${escapeHtml(priorityLabels[task.priority] || task.priority || "—")}</small></span>
+          <span class="task-status">${escapeHtml(statusLabels[task.status] || task.status || "Noma’lum")}</span>
         </div>
         ${task.ai_summary ? `<p class="task-summary">${escapeHtml(task.ai_summary)}</p>` : ''}
         ${stepsHtml ? `<div class="plan-steps"><div class="plan-label">AI ISHCHILARGA TAQSIMLANGAN REJA</div>${stepsHtml}</div>` : ''}
         ${["completed", "cancelled"].includes(task.status) ? "" : `<div class="task-actions"><button class="cancel-task-button" type="button" data-cancel-task="${escapeHtml(task.id)}">Bekor qilish</button></div>`}
       </article>`;
-  }).join("") : '<div class="empty-state">Hozircha vazifalar yo‘q.</div>';
+  }).join("") : `<div class="empty-state">${query ? "Qidiruv bo‘yicha vazifa topilmadi." : "Hozircha vazifalar yo‘q."}</div>`;
 }
 
 
@@ -348,6 +360,16 @@ $("#login-form").addEventListener("submit", async (event) => {
 });
 
 $("#refresh-integrations-button").addEventListener("click", refreshIntegrations);
+$("#project-search").addEventListener("input", () => renderProjects(dashboardProjects));
+$("#task-search").addEventListener("input", () => renderTasks(dashboardTasks, dashboardTaskSteps));
+$("#refresh-dashboard-button").addEventListener("click", async () => {
+  const button = $("#refresh-dashboard-button");
+  button.disabled = true;
+  button.textContent = "Yangilanmoqda…";
+  try { await loadDashboard(); }
+  catch (error) { $("#command-message").textContent = "Yangilashda xatolik: " + error.message; }
+  finally { button.disabled = false; button.textContent = "Yangilash ↻"; }
+});
 
 $("#github-scan-button").addEventListener("click", async () => {
   const button = $("#github-scan-button");
@@ -415,6 +437,19 @@ $("#monitoring-scan-button").addEventListener("click", async () => {
     button.innerHTML = 'Sayt va servislarni tekshirish <span>→</span>';
   }
 });
+
+const navLinks = [...document.querySelectorAll(".sidebar nav .nav-item")];
+navLinks.forEach(link => link.addEventListener("click", () => {
+  navLinks.forEach(item => item.classList.toggle("active", item === link));
+}));
+if ("IntersectionObserver" in window) {
+  const sections = navLinks.map(link => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+  const observer = new IntersectionObserver(entries => {
+    const current = entries.filter(entry => entry.isIntersecting).sort((a,b) => b.intersectionRatio-a.intersectionRatio)[0];
+    if (current) navLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === "#" + current.target.id));
+  }, { rootMargin: "-18% 0px -65% 0px", threshold: [0, .15, .35] });
+  sections.forEach(section => observer.observe(section));
+}
 
 $("#logout-button").addEventListener("click", async () => {
   try { await api("/api/auth/logout", { method: "POST", body: "{}" }); } catch {}
