@@ -367,6 +367,123 @@ async function scanGitHubProjects(env) {
   };
 }
 
+
+async function ensureMonitoringTables(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS monitoring_checks (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      checked_at TEXT NOT NULL,
+      status TEXT NOT NULL,
+      target_url TEXT,
+      http_status INTEGER,
+      response_ms INTEGER,
+      error TEXT,
+      UNIQUE(project_id)
+    )
+  `).run();
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_monitoring_checked ON monitoring_checks(checked_at DESC)"
+  ).run();
+}
+
+function validateMonitoringUrl(value) {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) return null;
+    if (/^(127\\.|10\\.|192\\.168\\.|169\\.254\\.)/.test(host) || /^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(host) || host === "0.0.0.0") return null;
+    if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+async function scanProjectUptime(env) {
+  const rows = await env.DB.prepare(
+    "SELECT id, name, deployment_url FROM projects ORDER BY name"
+  ).all();
+  const results = [];
+
+  for (const project of rows.results || []) {
+    const checkedAt = new Date().toISOString();
+    const target = project.deployment_url ? validateMonitoringUrl(project.deployment_url) : null;
+    let status = "not_configured";
+    let httpStatus = null;
+    let responseMs = null;
+    let error = null;
+
+    if (project.deployment_url && !target) {
+      status = "invalid_url";
+      error = "Monitoring uchun faqat xavfsiz HTTPS deployment URL kiriting.";
+    } else if (target) {
+      const started = Date.now();
+      try {
+        const response = await fetch(target.href, {
+          method: "GET",
+          redirect: "follow",
+          signal: AbortSignal.timeout(8000),
+          headers: {
+            "User-Agent": "BEKIUZ-AI-Monitor/1.0",
+            "Range": "bytes=0-0"
+          }
+        });
+        responseMs = Date.now() - started;
+        httpStatus = response.status;
+        if (response.body) await response.body.cancel().catch(() => {});
+        if (response.status >= 200 && response.status < 400) {
+          status = "online";
+        } else if (response.status < 500) {
+          status = "http_error";
+          error = "Server javob berdi, lekin HTTP " + response.status + " qaytardi.";
+        } else {
+          status = "offline";
+          error = "Server HTTP " + response.status + " xatosini qaytardi.";
+        }
+      } catch (err) {
+        responseMs = Date.now() - started;
+        status = "offline";
+        error = String(err?.message || "Ulanish amalga oshmadi.").slice(0, 220);
+      }
+    }
+
+    await env.DB.prepare(
+      "INSERT INTO monitoring_checks (id, project_id, checked_at, status, target_url, http_status, response_ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(project_id) DO UPDATE SET id=excluded.id, checked_at=excluded.checked_at, status=excluded.status, target_url=excluded.target_url, http_status=excluded.http_status, response_ms=excluded.response_ms, error=excluded.error"
+    ).bind(
+      crypto.randomUUID(), project.id, checkedAt, status,
+      project.deployment_url || null, httpStatus, responseMs, error
+    ).run();
+
+    results.push({
+      projectId: project.id,
+      name: project.name,
+      targetUrl: project.deployment_url || null,
+      checkedAt,
+      status,
+      httpStatus,
+      responseMs,
+      error
+    });
+  }
+
+  await audit(env, "monitoring.projects_scanned", "integration", "monitoring", {
+    total: results.length,
+    online: results.filter(item => item.status === "online").length,
+    notConfigured: results.filter(item => item.status === "not_configured").length,
+    offline: results.filter(item => item.status === "offline").length
+  });
+
+  return {
+    checkedAt: new Date().toISOString(),
+    total: results.length,
+    online: results.filter(item => item.status === "online").length,
+    notConfigured: results.filter(item => item.status === "not_configured").length,
+    results
+  };
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -422,6 +539,19 @@ async function handleApi(request, env) {
   if (path === "/api/bootstrap" || path === "/api/integrations/github/scan") {
     await ensureGitHubTables(env);
   }
+  if (path === "/api/bootstrap" || path === "/api/monitoring/scan") {
+    await ensureMonitoringTables(env);
+  }
+
+  if (path === "/api/monitoring/scan" && method === "POST") {
+    try {
+      const result = await scanProjectUptime(env);
+      return json({ ok: true, ...result });
+    } catch (error) {
+      console.error("Monitoring scan failed:", error);
+      return json({ error: "MONITORING_SCAN_FAILED", message: "Monitoring tekshiruvida xatolik yuz berdi." }, 502);
+    }
+  }
 
   if (path === "/api/integrations/github/scan" && method === "POST") {
     try {
@@ -434,19 +564,21 @@ async function handleApi(request, env) {
   }
 
   if (path === "/api/bootstrap" && method === "GET") {
-    const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult, githubChecksResult] = await Promise.all([
+    const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult, githubChecksResult, monitoringChecksResult] = await Promise.all([
       env.DB.prepare("SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at, c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private, c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at, c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json, c.error AS github_error FROM projects p LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github' ORDER BY p.name").all(),
       env.DB.prepare("SELECT t.id, t.title, t.description, t.project_id, t.assigned_agent, t.priority, t.status, t.created_at, p.summary AS ai_summary FROM tasks t LEFT JOIN manager_plans p ON p.task_id = t.id ORDER BY t.created_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT s.id, s.task_id, s.step_order, s.agent, s.title, s.description, s.operation, s.requires_approval, s.status FROM task_steps s JOIN tasks t ON t.id = s.task_id ORDER BY t.created_at DESC, s.step_order ASC LIMIT 100").all(),
       env.DB.prepare("SELECT (SELECT COUNT(*) FROM projects) AS projects, (SELECT COUNT(*) FROM tasks) AS tasks, (SELECT COUNT(*) FROM tasks WHERE status = 'in_progress') AS active, (SELECT COUNT(*) FROM approvals WHERE status = 'pending') AS pending_approvals").first(),
       env.DB.prepare("SELECT id, title, operation, requested_at FROM approvals WHERE status = 'pending' ORDER BY requested_at DESC LIMIT 10").all(),
       env.DB.prepare("SELECT id, action, target_type, target_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12").all(),
-      env.DB.prepare("SELECT project_id, checked_at, status, is_private, default_branch, last_commit_at, last_commit_message, root_files_json, error FROM project_checks WHERE provider = 'github'").all()
+      env.DB.prepare("SELECT project_id, checked_at, status, is_private, default_branch, last_commit_at, last_commit_message, root_files_json, error FROM project_checks WHERE provider = 'github'").all(),
+      env.DB.prepare("SELECT project_id, checked_at, status, target_url, http_status, response_ms, error FROM monitoring_checks").all()
     ]);
     return json({
       stats: counts || { projects: 0, tasks: 0, active: 0, pending_approvals: 0 },
       projects: projectsResult.results || [],
       githubChecks: githubChecksResult.results || [],
+      monitoringChecks: monitoringChecksResult.results || [],
       tasks: tasksResult.results || [],
       taskSteps: stepsResult.results || [],
       approvals: approvalsResult.results || [],
