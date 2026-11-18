@@ -61,3 +61,7 @@
 .project-row{display:flex;flex-wrap:wrap}
 .project-main{flex:1 1 130px}
 .project-row .project-url-form{flex:1 0 100%}
+
+.discover-button{width:100%;margin:0 0 8px;font-size:11px}
+.discover-message{margin:0 0 10px;line-height:1.5;color:#aaa1c2}
+.discover-button:disabled{opacity:.6;cursor:wait}
