@@ -609,6 +609,72 @@ async function scanProjectUptime(env) {
   };
 }
 
+async function ensureIntegrationRegistry(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS integrations (
+      id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL UNIQUE,
+      account_label TEXT,
+      permission_level TEXT NOT NULL DEFAULT 'read_only',
+      status TEXT NOT NULL DEFAULT 'not_connected'
+        CHECK (status IN ('not_connected', 'connected', 'error', 'disabled')),
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
+async function checkProviderConnection(provider, env) {
+  const definitions = {
+    github: { token: env.GITHUB_TOKEN, url: "https://api.github.com/user", label: "GitHub", permission: "Repository read access" },
+    netlify: { token: env.NETLIFY_ACCESS_TOKEN, url: "https://api.netlify.com/api/v1/user", label: "Netlify", permission: "Sites and deploy read access" },
+    cloudflare: { token: env.CLOUDFLARE_API_TOKEN, url: "https://api.cloudflare.com/client/v4/user/tokens/verify", label: "Cloudflare", permission: "Account and Workers access" }
+  };
+  const item = definitions[provider];
+  if (!item) return null;
+  if (!item.token) return { provider, label: item.label, status: "not_connected", permission: item.permission, secretName: provider === "github" ? "GITHUB_TOKEN" : provider === "netlify" ? "NETLIFY_ACCESS_TOKEN" : "CLOUDFLARE_API_TOKEN" };
+  try {
+    const response = await fetch(item.url, {
+      headers: {
+        "Authorization": "Bearer " + item.token,
+        "Accept": "application/json",
+        "User-Agent": "BEKIUZ-AI-Manager"
+      },
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await response.json().catch(() => ({}));
+    const valid = response.ok && (provider !== "cloudflare" || data?.success === true);
+    const account = provider === "github" ? data.login
+      : provider === "netlify" ? (data.full_name || data.email || data.slug)
+      : data?.result?.status;
+    return {
+      provider,
+      label: item.label,
+      status: valid ? "connected" : "error",
+      accountLabel: typeof account === "string" ? account.slice(0, 120) : null,
+      permission: item.permission,
+      secretName: provider === "github" ? "GITHUB_TOKEN" : provider === "netlify" ? "NETLIFY_ACCESS_TOKEN" : "CLOUDFLARE_API_TOKEN",
+      error: valid ? null : "Token tekshiruvi muvaffaqiyatsiz (HTTP " + response.status + ")."
+    };
+  } catch {
+    return { provider, label: item.label, status: "error", permission: item.permission, secretName: provider === "github" ? "GITHUB_TOKEN" : provider === "netlify" ? "NETLIFY_ACCESS_TOKEN" : "CLOUDFLARE_API_TOKEN", error: "Xizmat bilan bog‘lanib bo‘lmadi." };
+  }
+}
+
+async function getIntegrationStatuses(env) {
+  await ensureIntegrationRegistry(env);
+  const providers = await Promise.all(["github", "netlify", "cloudflare"].map(provider => checkProviderConnection(provider, env)));
+  for (const item of providers) {
+    await env.DB.prepare(
+      "INSERT INTO integrations (id, provider, account_label, permission_level, status, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(provider) DO UPDATE SET account_label = excluded.account_label, permission_level = excluded.permission_level, status = excluded.status, updated_at = CURRENT_TIMESTAMP"
+    ).bind("integration-" + item.provider, item.provider, item.accountLabel || null, item.permission, item.status).run();
+  }
+  await audit(env, "integrations.status_checked", "integration", "all", {
+    providers: providers.map(item => ({ provider: item.provider, status: item.status }))
+  });
+  return providers;
+}
+
 async function handleApi(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -664,8 +730,21 @@ async function handleApi(request, env) {
   if (path === "/api/bootstrap" || path === "/api/integrations/github/scan") {
     await ensureGitHubTables(env);
   }
+  if (path === "/api/bootstrap" || path === "/api/integrations/status") {
+    await ensureIntegrationRegistry(env);
+  }
   if (path === "/api/bootstrap" || path === "/api/monitoring/scan") {
     await ensureMonitoringTables(env);
+  }
+
+  if (path === "/api/integrations/status" && method === "GET") {
+    try {
+      const integrations = await getIntegrationStatuses(env);
+      return json({ ok: true, integrations });
+    } catch (error) {
+      console.error("Integration status check failed:", error);
+      return json({ error: "INTEGRATION_STATUS_FAILED", message: "Integratsiyalar holatini tekshirib bo‘lmadi." }, 502);
+    }
   }
 
   if (path === "/api/monitoring/scan" && method === "POST") {
