@@ -225,6 +225,131 @@ function parseGitHubRepo(repoUrl) {
   }
 }
 
+async function netlifyRequest(env, pathname) {
+  if (!env.NETLIFY_ACCESS_TOKEN) return { configured: false, response: null, data: null };
+  const response = await fetch("https://api.netlify.com/api/v1" + pathname, {
+    headers: {
+      "Authorization": "Bearer " + env.NETLIFY_ACCESS_TOKEN,
+      "Accept": "application/json",
+      "User-Agent": "BEKIUZ-AI-Manager"
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  return { configured: true, response, data };
+}
+
+function repoMatchesNetlifySite(site, repo) {
+  const candidates = [
+    site?.repo?.url, site?.repo?.repo_url, site?.repo?.repo_path,
+    site?.build_settings?.repo_url, site?.build_settings?.repo_path,
+    site?.repo_url, site?.repository_url
+  ].filter(value => typeof value === "string" && value.trim());
+  return candidates.some(value => {
+    const parsed = parseGitHubRepo(value.startsWith("http") ? value : "https://github.com/" + value.replace(/^\/+/, ""));
+    return parsed && parsed.fullName.toLowerCase() === repo.fullName.toLowerCase();
+  });
+}
+
+function httpsCandidate(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol === "http:") url.protocol = "https:";
+    return validateMonitoringUrl(url.href) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+async function discoverProjectDeploymentUrls(env) {
+  const projectsResult = await env.DB.prepare(
+    "SELECT id, name, repo_url, deployment_url FROM projects ORDER BY name"
+  ).all();
+  const projects = projectsResult.results || [];
+  let netlifySites = [];
+  let netlifyError = null;
+
+  if (env.NETLIFY_ACCESS_TOKEN) {
+    const sitesResult = await netlifyRequest(env, "/sites?per_page=100&page=1");
+    if (sitesResult.response?.ok && Array.isArray(sitesResult.data)) {
+      netlifySites = sitesResult.data;
+    } else {
+      netlifyError = "Netlify API ruxsati yoki javobi xato (HTTP " + (sitesResult.response?.status || 0) + ").";
+    }
+  }
+
+  const results = [];
+  for (const project of projects) {
+    if (project.deployment_url) {
+      results.push({ projectId: project.id, name: project.name, status: "already_configured", url: project.deployment_url, source: "manual" });
+      continue;
+    }
+
+    const repo = parseGitHubRepo(project.repo_url || "");
+    if (!repo) {
+      results.push({ projectId: project.id, name: project.name, status: "repository_missing", url: null, source: null });
+      continue;
+    }
+
+    let selectedUrl = null;
+    let source = null;
+    let matchedSiteName = null;
+
+    if (netlifySites.length) {
+      const matches = netlifySites.filter(site => repoMatchesNetlifySite(site, repo));
+      if (matches.length === 1) {
+        const site = matches[0];
+        selectedUrl = httpsCandidate(site.ssl_url || site.url || site.custom_domain);
+        if (selectedUrl) {
+          source = "netlify";
+          matchedSiteName = String(site.name || "").slice(0, 100);
+        }
+      }
+    }
+
+    if (!selectedUrl) {
+      const encodedRepo = encodeURIComponent(repo.owner) + "/" + encodeURIComponent(repo.name);
+      const pages = await githubRequest(env, "/repos/" + encodedRepo + "/pages");
+      if (pages.response.ok) {
+        selectedUrl = httpsCandidate(pages.data?.html_url);
+        if (selectedUrl) source = "github_pages";
+      }
+    }
+
+    if (!selectedUrl) {
+      const meta = await githubRequest(env, "/repos/" + encodeURIComponent(repo.owner) + "/" + encodeURIComponent(repo.name));
+      if (meta.response.ok) {
+        selectedUrl = httpsCandidate(meta.data?.homepage);
+        if (selectedUrl) source = "github_homepage";
+      }
+    }
+
+    if (selectedUrl) {
+      await env.DB.prepare(
+        "UPDATE projects SET deployment_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (deployment_url IS NULL OR deployment_url = '')"
+      ).bind(selectedUrl, project.id).run();
+      await audit(env, "project.deployment_url_discovered", "project", project.id, {
+        name: project.name, source, url: selectedUrl, netlifySite: matchedSiteName
+      });
+      results.push({ projectId: project.id, name: project.name, status: "discovered", url: selectedUrl, source, netlifySite: matchedSiteName });
+    } else {
+      results.push({ projectId: project.id, name: project.name, status: "not_found", url: null, source: null });
+    }
+  }
+
+  const discovered = results.filter(item => item.status === "discovered").length;
+  return {
+    checkedAt: new Date().toISOString(),
+    total: projects.length,
+    discovered,
+    alreadyConfigured: results.filter(item => item.status === "already_configured").length,
+    notFound: results.filter(item => item.status === "not_found" || item.status === "repository_missing").length,
+    netlifyConfigured: Boolean(env.NETLIFY_ACCESS_TOKEN),
+    netlifyError,
+    results
+  };
+}
+
 async function githubRequest(env, pathname) {
   const response = await fetch("https://api.github.com" + pathname, {
     headers: {
@@ -550,6 +675,16 @@ async function handleApi(request, env) {
     } catch (error) {
       console.error("Monitoring scan failed:", error);
       return json({ error: "MONITORING_SCAN_FAILED", message: "Monitoring tekshiruvida xatolik yuz berdi." }, 502);
+    }
+  }
+
+  if (path === "/api/integrations/deployments/discover" && method === "POST") {
+    try {
+      const result = await discoverProjectDeploymentUrls(env);
+      return json({ ok: true, ...result });
+    } catch (error) {
+      console.error("Deployment URL discovery failed:", error);
+      return json({ error: "DEPLOYMENT_DISCOVERY_FAILED", message: "Sayt manzillarini avtomatik topishda xatolik yuz berdi." }, 502);
     }
   }
 
