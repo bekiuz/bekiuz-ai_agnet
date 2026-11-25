@@ -898,13 +898,18 @@ async function handleApi(request, env) {
 
   if (path === "/api/bootstrap" && method === "GET") {
     const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult, githubChecksResult, monitoringChecksResult] = await Promise.all([
-      env.DB.prepare("SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at, c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private, c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at, c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json, c.error AS github_error,
-      pc.detected_type AS detected_type, pc.confidence AS detection_confidence,
-      pc.evidence_json AS detection_evidence_json, pc.checked_at AS detection_checked_at
-      FROM projects p
-      LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github'
-      LEFT JOIN project_classifications pc ON pc.project_id = p.id
-      ORDER BY p.name").all(),
+      env.DB.prepare(`
+        SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at,
+          c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private,
+          c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at,
+          c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json,
+          c.error AS github_error, pc.detected_type AS detected_type, pc.confidence AS detection_confidence,
+          pc.evidence_json AS detection_evidence_json, pc.checked_at AS detection_checked_at
+        FROM projects p
+        LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github'
+        LEFT JOIN project_classifications pc ON pc.project_id = p.id
+        ORDER BY p.name
+      `).all(),
       env.DB.prepare("SELECT t.id, t.title, t.description, t.project_id, t.assigned_agent, t.priority, t.status, t.created_at, p.summary AS ai_summary FROM tasks t LEFT JOIN manager_plans p ON p.task_id = t.id ORDER BY t.created_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT s.id, s.task_id, s.step_order, s.agent, s.title, s.description, s.operation, s.requires_approval, s.status FROM task_steps s JOIN tasks t ON t.id = s.task_id ORDER BY t.created_at DESC, s.step_order ASC LIMIT 100").all(),
       env.DB.prepare("SELECT (SELECT COUNT(*) FROM projects) AS projects, (SELECT COUNT(*) FROM tasks) AS tasks, (SELECT COUNT(*) FROM tasks WHERE status = 'in_progress') AS active, (SELECT COUNT(*) FROM approvals WHERE status = 'pending') AS pending_approvals").first(),
