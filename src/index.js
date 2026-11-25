@@ -1,3 +1,5 @@
+import { detectTelegramBot } from "./project-detection.js";
+
 const COOKIE_NAME = "bkm_session";
 const SESSION_TTL = 12 * 60 * 60;
 const MODEL = "@cf/google/gemma-4-26b-a4b-it";
@@ -384,6 +386,47 @@ async function ensureGitHubTables(env) {
   await env.DB.prepare(
     "CREATE INDEX IF NOT EXISTS idx_project_checks_checked ON project_checks(checked_at DESC)"
   ).run();
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS project_classifications (
+      project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+      detected_type TEXT,
+      confidence REAL NOT NULL DEFAULT 0,
+      evidence_json TEXT NOT NULL DEFAULT '[]',
+      checked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
+
+async function readGitHubTextFile(env, repo, path, branch) {
+  const encodedRepo = encodeURIComponent(repo.owner) + "/" + encodeURIComponent(repo.name);
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const ref = branch ? "?ref=" + encodeURIComponent(branch) : "";
+  const result = await githubRequest(env, "/repos/" + encodedRepo + "/contents/" + encodedPath + ref);
+  if (!result.response.ok || typeof result.data?.content !== "string" || result.data.encoding !== "base64") return null;
+  try {
+    const binary = atob(result.data.content.replace(/\s/g, ""));
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch { return null; }
+}
+
+async function inspectRepositoryForTelegramBot(env, repo, branch, rootFiles) {
+  const available = new Map(rootFiles.map(file => [file.name, file]));
+  const candidates = [
+    "requirements.txt", "pyproject.toml", "Pipfile", "package.json",
+    "go.mod", "Cargo.toml", "composer.json", "Gemfile", "README.md",
+    "bot.py", "telegram_bot.py", "main.py", "app.py", "bot.js", "index.js", "main.js"
+  ];
+  const paths = candidates.filter(path => {
+    const file = available.get(path);
+    return file?.type === "file" && (!file.size || file.size <= 160000);
+  });
+  const loaded = await Promise.all(paths.map(async path => [
+    path, await readGitHubTextFile(env, repo, path, branch)
+  ]));
+  const contents = Object.fromEntries(loaded.filter(([, content]) => typeof content === "string"));
+  return detectTelegramBot({ files: rootFiles, contents });
 }
 
 async function scanGitHubProjects(env) {
@@ -439,7 +482,8 @@ async function scanGitHubProjects(env) {
         if (files.response.ok && Array.isArray(files.data)) {
           rootFiles = files.data.slice(0, 80).map(file => ({
             name: String(file.name || "").slice(0, 160),
-            type: file.type === "dir" ? "dir" : "file"
+            type: file.type === "dir" ? "dir" : "file",
+            size: Number(file.size || 0)
           }));
         } else if (!files.response.ok) {
           status = "partial";
@@ -454,6 +498,21 @@ async function scanGitHubProjects(env) {
       status = "error";
       error = String(err?.message || "GitHub bilan bog‘lanib bo‘lmadi.").slice(0, 240);
     }
+
+    let detection = { type: null, label: null, confidence: 0, evidence: [] };
+    if (rootFiles.length) {
+      try {
+        detection = await inspectRepositoryForTelegramBot(env, repo, branch, rootFiles);
+      } catch (detectionError) {
+        console.warn("Project type detection skipped:", repo.fullName, detectionError);
+      }
+    }
+    const detectionCheckedAt = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO project_classifications (project_id, detected_type, confidence, evidence_json, checked_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(project_id) DO UPDATE SET detected_type=excluded.detected_type, confidence=excluded.confidence, evidence_json=excluded.evidence_json, checked_at=excluded.checked_at"
+    ).bind(
+      project.id, detection.type, detection.confidence, JSON.stringify(detection.evidence), detectionCheckedAt
+    ).run();
 
     await env.DB.prepare(
       "INSERT INTO project_checks (id, project_id, provider, checked_at, status, is_private, default_branch, last_commit_sha, last_commit_at, last_commit_message, root_files_json, error) VALUES (?, ?, 'github', ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(project_id, provider) DO UPDATE SET id=excluded.id, checked_at=excluded.checked_at, status=excluded.status, is_private=excluded.is_private, default_branch=excluded.default_branch, last_commit_sha=excluded.last_commit_sha, last_commit_at=excluded.last_commit_at, last_commit_message=excluded.last_commit_message, root_files_json=excluded.root_files_json, error=excluded.error"
@@ -474,6 +533,7 @@ async function scanGitHubProjects(env) {
       lastCommitAt: commitAt,
       lastCommitMessage: commitMessage,
       rootFiles,
+      detection,
       error
     });
   }
@@ -481,13 +541,15 @@ async function scanGitHubProjects(env) {
   await audit(env, "github.projects_scanned", "integration", "github", {
     total: results.length,
     healthy: results.filter(item => item.status === "healthy").length,
-    permissionRequired: results.filter(item => item.status === "permission_required").length
+    permissionRequired: results.filter(item => item.status === "permission_required").length,
+    telegramBots: results.filter(item => item.detection?.type === "telegram_bot").length
   });
   return {
     checkedAt: new Date().toISOString(),
     total: results.length,
     healthy: results.filter(item => item.status === "healthy").length,
     permissionRequired: results.filter(item => item.status === "permission_required").length,
+    telegramBots: results.filter(item => item.detection?.type === "telegram_bot").length,
     results
   };
 }
@@ -836,7 +898,13 @@ async function handleApi(request, env) {
 
   if (path === "/api/bootstrap" && method === "GET") {
     const [projectsResult, tasksResult, stepsResult, counts, approvalsResult, activityResult, githubChecksResult, monitoringChecksResult] = await Promise.all([
-      env.DB.prepare("SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at, c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private, c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at, c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json, c.error AS github_error FROM projects p LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github' ORDER BY p.name").all(),
+      env.DB.prepare("SELECT p.id, p.name, p.category, p.repo_url, p.deployment_url, p.status, p.updated_at, c.status AS github_status, c.checked_at AS github_checked_at, c.is_private AS github_is_private, c.default_branch AS github_default_branch, c.last_commit_at AS github_last_commit_at, c.last_commit_message AS github_last_commit_message, c.root_files_json AS github_root_files_json, c.error AS github_error,
+      pc.detected_type AS detected_type, pc.confidence AS detection_confidence,
+      pc.evidence_json AS detection_evidence_json, pc.checked_at AS detection_checked_at
+      FROM projects p
+      LEFT JOIN project_checks c ON c.project_id = p.id AND c.provider = 'github'
+      LEFT JOIN project_classifications pc ON pc.project_id = p.id
+      ORDER BY p.name").all(),
       env.DB.prepare("SELECT t.id, t.title, t.description, t.project_id, t.assigned_agent, t.priority, t.status, t.created_at, p.summary AS ai_summary FROM tasks t LEFT JOIN manager_plans p ON p.task_id = t.id ORDER BY t.created_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT s.id, s.task_id, s.step_order, s.agent, s.title, s.description, s.operation, s.requires_approval, s.status FROM task_steps s JOIN tasks t ON t.id = s.task_id ORDER BY t.created_at DESC, s.step_order ASC LIMIT 100").all(),
       env.DB.prepare("SELECT (SELECT COUNT(*) FROM projects) AS projects, (SELECT COUNT(*) FROM tasks) AS tasks, (SELECT COUNT(*) FROM tasks WHERE status = 'in_progress') AS active, (SELECT COUNT(*) FROM approvals WHERE status = 'pending') AS pending_approvals").first(),
