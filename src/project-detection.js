@@ -10,7 +10,6 @@ const TELEGRAM_CODE_PATTERNS = [
   /\bfrom\s+telegram(?:\.ext)?\s+import\b|\bimport\s+telegram\b/i,
   /\bfrom\s+telebot\s+import\b|\btelebot\.TeleBot\b/i,
   /\bfrom\s+['"](?:grammy|telegraf)['"]|\brequire\(\s*['"](?:grammy|telegraf)['"]\s*\)/i,
-  /\bfrom\s+['"](?:grammy|telegraf)['"]|\brequire\(\s*['"](?:grammy|telegraf)['"]\s*\)/i,
   /\bnew\s+Telegraf\s*\(|\bnew\s+grammy\.Bot\s*\(/i,
   /\bApplicationBuilder\s*\(|\bCommandStart\b|\bDispatcher\s*\(/i,
   /\bTelegramBot\s*\(|\bTelegram\.Bot\b/i
@@ -49,7 +48,9 @@ export function detectTelegramBot({ files = [], contents = {} } = {}) {
     }
   }
   for (const [path, content] of sources) {
-    if (TELEGRAM_CODE_PATTERNS.some(pattern => pattern.test(String(content || "")))) {
+    const source = String(content || "");
+    if (TELEGRAM_CODE_PATTERNS.some(pattern => pattern.test(source)) ||
+        (hasDirectBotApi && /api\\.telegram\\.org\\/bot/i.test(source))) {
       evidence.push(path + ": Telegram bot API usage");
     }
   }
