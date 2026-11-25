@@ -60,3 +60,29 @@ These repositories remain in the account but are not ahead of the current priori
 2. Fix the highest-impact blocker in the active product queue.
 3. Run the repository's existing checks before changing deployment state.
 4. Update this file only when a repository state, blocker or verified milestone changes.
+
+
+## Latest audit results — 2026-11-25
+
+### Documentation refreshed
+
+Feature/status documentation was updated in these repositories without changing their application code:
+
+- `BEKIUZ-Usta`
+- `BEKIUZ-Market-AI`
+- `KunAI`
+- `MiniIsh-2.0`
+- `OvozAI`
+- `BiznesOS`
+- `ClipForge`
+- `CodeQuest-UZ`
+
+### GitHub Pages checks after the documentation commits
+
+- **Succeeded:** Market AI, KunAI, OvozAI, BiznesOS, ClipForge and CodeQuest-UZ.
+- **Blocked:** BEKIUZ Usta and MiniIsh 2.0. Their workflows stopped at `configure-pages`: GitHub returned `Resource not accessible by integration` while trying to create a Pages site. The upload/deploy steps were skipped, so this was not an application-code failure. Pages must be enabled in each repository's Settings, or the workflow's Pages permission must be corrected by an owner.
+- **JJK Cursed Arena:** JavaScript validation and artifact upload succeeded, but `deploy-pages` could not find the uploaded artifact. No deployment retry was made.
+
+### Verification boundary
+
+The documentation commits are complete. A successful Pages workflow is evidence that the workflow completed, not a full browser QA of every feature. The two blocked Pages workflows and the JJK deployment issue remain open; no production secrets, data or deployment settings were changed during this audit.
