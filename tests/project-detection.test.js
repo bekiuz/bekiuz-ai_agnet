@@ -55,3 +55,15 @@ test("does not classify a Telegram API URL without bot-token or SDK evidence", (
   });
   assert.equal(result.type, null);
 });
+
+test("detects direct Telegram Bot API calls only when a bot token variable is used", () => {
+  const result = detectTelegramBot({
+    files: [{ name: "telegram.js", type: "file" }],
+    contents: {
+      "telegram.js": "const BOT_TOKEN = process.env.BOT_TOKEN; fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage');"
+    }
+  });
+  assert.equal(result.type, "telegram_bot");
+  assert.equal(result.confidence, 0.94);
+  assert.equal(result.evidence.length, 1);
+});
