@@ -50,7 +50,7 @@ export function detectTelegramBot({ files = [], contents = {} } = {}) {
   for (const [path, content] of sources) {
     const source = String(content || "");
     if (TELEGRAM_CODE_PATTERNS.some(pattern => pattern.test(source)) ||
-        (hasDirectBotApi && /api\\.telegram\\.org\\/bot/i.test(source))) {
+        (hasDirectBotApi && source.includes("api.telegram.org/bot"))) {
       evidence.push(path + ": Telegram bot API usage");
     }
   }
