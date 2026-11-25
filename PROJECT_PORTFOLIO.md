@@ -64,6 +64,10 @@ These repositories remain in the account but are not ahead of the current priori
 
 ## Latest audit results — 2026-11-25
 
+### Code improvement prepared for review
+
+- **KunAI:** draft PR [#1](https://github.com/bekiuz/KunAI/pull/1) adds JSON backup download/import. Import validates the task list and asks before replacing local tasks. It is not merged or deployed; browser interaction testing remains before merge.
+
 ### Documentation refreshed
 
 Feature/status documentation was updated in these repositories without changing their application code:
