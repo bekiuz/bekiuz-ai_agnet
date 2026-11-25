@@ -47,3 +47,11 @@ test("does not classify a repository from a bot.py filename alone", () => {
   });
   assert.equal(result.type, null);
 });
+
+test("does not classify a Telegram API URL without bot-token or SDK evidence", () => {
+  const result = detectTelegramBot({
+    files: [{ name: "app.js", type: "file" }],
+    contents: { "app.js": "const url = 'https://api.telegram.org/bot123456/sendMessage';" }
+  });
+  assert.equal(result.type, null);
+});
