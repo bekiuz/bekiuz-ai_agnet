@@ -79,6 +79,7 @@
         <div class="panel" id="projects">
           <div class="panel-heading"><div><p class="eyebrow">PROJECT REGISTRY</p><h2>Loyihalarim</h2></div><span id="project-count" class="count-pill">0</span></div>
           <input id="project-search" class="panel-search" type="search" placeholder="Loyiha nomi yoki repository bo‘yicha qidirish…" aria-label="Loyihalarni qidirish">
+          <p class="project-detection-note">Telegram botlar repository ichidagi aiogram, python-telegram-bot, grammY, Telegraf va Bot API kod belgilari asosida avtomatik ajratiladi.</p>
           <button id="discover-deployments-button" class="primary-button discover-button" type="button">Sayt linklarini avtomatik topish <span>✦</span></button>
           <p id="discover-deployments-message" class="form-message discover-message" role="status">GitHub Pages va Netlify’dagi mos deploylar qidiriladi. Mavjud qo‘lda kiritilgan manzillar o‘zgartirilmaydi.</p>
           <div id="projects-list" class="projects-list"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
@@ -141,8 +142,8 @@
           <div class="integration-row"><span class="integration-icon telegram">TG</span><span><b>Telegram</b><small>Bot va xabarnomalar — keyingi integratsiya</small></span><em>Keyingi bosqich</em></div>
           <div class="github-tools">
             <div class="integration-row"><span class="integration-icon github">GH</span><span><b>GitHub repository tekshiruvi</b><small>Repository, commit va asosiy fayllar</small></span><em id="github-integration-status">—</em></div>
-            <button id="github-scan-button" class="primary-button github-scan-button" type="button">GitHub loyihalarini tekshirish <span>→</span></button>
-            <p id="github-scan-message" class="form-message github-scan-message" role="status">Repositorylar tekshiruvga tayyor.</p>
+            <button id="github-scan-button" class="primary-button github-scan-button" type="button">GitHub + botlarni aniqlash <span>→</span></button>
+            <p id="github-scan-message" class="form-message github-scan-message" role="status">Repository kodi, dependency va importlari tekshirilib, Telegram botlar alohida guruhlanadi.</p>
             <div id="github-scan-results" class="github-scan-results"><div class="empty-state">Hali GitHub tekshiruvi bajarilmagan.</div></div>
           </div>
         </div>
