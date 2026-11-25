@@ -34,7 +34,7 @@ export function detectTelegramBot({ files = [], contents = {} } = {}) {
 
   const hasDependency = TELEGRAM_DEPENDENCIES.some(pattern => pattern.test(manifestText));
   const hasBotCode = TELEGRAM_CODE_PATTERNS.some(pattern => pattern.test(sourceText));
-  const hasDirectBotApi = /api\.telegram\.org\/bot/i.test(sourceText);
+  const hasDirectBotApi = /api\.telegram\.org\/bot/i.test(sourceText) && /\b(?:BOT_TOKEN|TELEGRAM_BOT_TOKEN)\b/i.test(sourceText);
 
   // Require corroborating evidence; a repo name or README mention is not enough.
   if (!((hasDependency && hasBotCode) || hasDirectBotApi)) {
