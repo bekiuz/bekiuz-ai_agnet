@@ -6,6 +6,7 @@ const setupHint = $("#setup-hint");
 let dashboardProjects = [];
 let dashboardTasks = [];
 let dashboardTaskSteps = [];
+let projectScanInFlight = false;
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -64,24 +65,45 @@ function githubStatusLabel(status) {
 function renderProjects(projects) {
   dashboardProjects = projects;
   const query = ($("#project-search")?.value || "").trim().toLocaleLowerCase("uz");
-  const visible = projects.filter(project => `${project.name || ""} ${shortRepo(project.repo_url)} ${project.github_status || ""}`.toLocaleLowerCase("uz").includes(query));
-  $("#project-count").textContent = query ? `${visible.length}/${projects.length}` : projects.length;
-  $("#projects-list").innerHTML = visible.length ? visible.map(project => {
+  const visible = projects.filter(project =>
+    [project.name || "", shortRepo(project.repo_url), project.github_status || ""]
+      .join(" ").toLocaleLowerCase("uz").includes(query)
+  );
+  $("#project-count").textContent = query ? visible.length + "/" + projects.length : projects.length;
+
+  const renderRows = rows => rows.map(project => {
     const status = project.github_status || "not_checked";
     const commit = project.github_last_commit_message
-      ? `<small class="project-commit">${escapeHtml(project.github_last_commit_message)}</small>`
+      ? '<small class="project-commit">' + escapeHtml(project.github_last_commit_message) + '</small>'
       : "";
-    return `
-    <div class="project-row">
-      <span class="project-icon">${escapeHtml((project.name || "P").slice(0, 1).toUpperCase())}</span>
-      <span class="project-main"><b>${escapeHtml(project.name)}</b><small>${escapeHtml(shortRepo(project.repo_url))}</small>${commit}</span>
-      <span class="project-status ${status === "healthy" ? "github-ok" : status === "permission_required" ? "github-warn" : ""}">${escapeHtml(githubStatusLabel(status))}</span>
-      <form class="project-url-form" data-deployment-url="${escapeHtml(project.id)}">
-        <input type="url" aria-label="${escapeHtml(project.name)} deployment URL" placeholder="https://sayt-manzili..." value="${escapeHtml(project.deployment_url || "")}">
-        <button type="submit">Saqlash</button>
-      </form>
-    </div>`;
-  }).join("") : `<div class="empty-state">${query ? "Qidiruv bo‘yicha loyiha topilmadi." : "Hali loyihalar qo‘shilmagan."}</div>`;
+    let evidence = [];
+    try { evidence = JSON.parse(project.detection_evidence_json || "[]"); } catch {}
+    const badge = project.detected_type === "telegram_bot"
+      ? '<span class="project-type-badge" title="' + escapeHtml(evidence.join("; ")) + '">Telegram bot · AI aniqladi</span>'
+      : "";
+    return '<div class="project-row">' +
+      '<span class="project-icon">' + escapeHtml((project.name || "P").slice(0, 1).toUpperCase()) + '</span>' +
+      '<span class="project-main"><b>' + escapeHtml(project.name) + '</b><small>' + escapeHtml(shortRepo(project.repo_url)) + '</small>' + badge + commit + '</span>' +
+      '<span class="project-status ' + (status === "healthy" ? "github-ok" : status === "permission_required" ? "github-warn" : "") + '">' + escapeHtml(githubStatusLabel(status)) + '</span>' +
+      '<form class="project-url-form" data-deployment-url="' + escapeHtml(project.id) + '">' +
+        '<input type="url" aria-label="' + escapeHtml(project.name) + ' deployment URL" placeholder="https://sayt-manzili..." value="' + escapeHtml(project.deployment_url || "") + '">' +
+        '<button type="submit">Saqlash</button>' +
+      '</form>' +
+    '</div>';
+  }).join("");
+
+  const telegramBots = visible.filter(project => project.detected_type === "telegram_bot");
+  const otherProjects = visible.filter(project => project.detected_type !== "telegram_bot");
+  const group = (title, items) => items.length
+    ? '<section class="project-group"><div class="project-group-heading"><span>' + title + '</span><b>' + items.length + '</b></div>' + renderRows(items) + '</section>'
+    : "";
+  const isDetecting = projects.some(project => project.repo_url && !project.detection_checked_at);
+  const note = isDetecting
+    ? '<div class="project-detection-note">Telegram botlar repository kodlari orqali avtomatik aniqlanmoqda…</div>'
+    : "";
+  $("#projects-list").innerHTML = note + (visible.length
+    ? group("TELEGRAM BOTLAR", telegramBots) + group("BOSHQA LOYIHALAR", otherProjects)
+    : '<div class="empty-state">' + (query ? "Qidiruv bo‘yicha loyiha topilmadi." : "Hali loyihalar qo‘shilmagan.") + '</div>');
 }
 
 function renderGitHubResults(checks = []) {
@@ -92,26 +114,30 @@ function renderGitHubResults(checks = []) {
   }
   const healthy = checks.filter(item => item.status === "healthy").length;
   const privateNeeded = checks.filter(item => item.status === "permission_required").length;
+  const telegramBots = checks.filter(item => item.detected_type === "telegram_bot").length;
   $("#github-integration-status").textContent = healthy + "/" + checks.length + " tekshirildi";
   target.innerHTML = checks.map(item => {
     let files = [];
     try { files = JSON.parse(item.root_files_json || "[]"); } catch {}
-    const names = files.slice(0, 6).map(file => file.name).join(" · ");
-    return `<div class="github-result-row">
-      <div class="github-result-top"><b>${escapeHtml(item.project_name || item.name || "Loyiha")}</b><span class="github-result-status">${escapeHtml(githubStatusLabel(item.status))}</span></div>
-      <small>${escapeHtml(item.repository || "")}${item.default_branch ? " · " + escapeHtml(item.default_branch) : ""}</small>
-      ${item.last_commit_message ? `<small class="project-commit">${escapeHtml(item.last_commit_message)}</small>` : ""}
-      ${names ? `<small class="github-files">${escapeHtml(names)}</small>` : ""}
-      ${item.error ? `<small class="github-error">${escapeHtml(item.error)}</small>` : ""}
-    </div>`;
+    const names = files.filter(file => file.type === "file").slice(0, 6).map(file => file.name).join(" · ");
+    const detectionLine = item.detected_type === "telegram_bot"
+      ? '<small class="github-files">Telegram bot aniqlangan · ' + Math.round(Number(item.detection_confidence || 0) * 100) + '% ishonch</small>'
+      : "";
+    return '<div class="github-result-row">' +
+      '<div class="github-result-top"><b>' + escapeHtml(item.project_name || item.name || "Loyiha") + '</b><span class="github-result-status">' + escapeHtml(githubStatusLabel(item.status)) + '</span></div>' +
+      '<small>' + escapeHtml(item.repository || "") + (item.default_branch ? " · " + escapeHtml(item.default_branch) : "") + '</small>' +
+      (item.last_commit_message ? '<small class="project-commit">' + escapeHtml(item.last_commit_message) + '</small>' : "") +
+      (names ? '<small class="github-files">' + escapeHtml(names) + '</small>' : "") +
+      detectionLine +
+      (item.error ? '<small class="github-error">' + escapeHtml(item.error) + '</small>' : "") +
+    '</div>';
   }).join("");
   if (privateNeeded) {
-    $("#github-scan-message").textContent = healthy + " ta repository tekshirildi. " + privateNeeded + " ta private repository uchun Worker’ga read-only GitHub ruxsati kerak.";
+    $("#github-scan-message").textContent = telegramBots + " ta Telegram bot aniqlandi. " + privateNeeded + " ta private repository uchun Worker’ga read-only GitHub ruxsati kerak.";
   } else {
-    $("#github-scan-message").textContent = healthy + " ta repository tekshirildi.";
+    $("#github-scan-message").textContent = telegramBots + " ta Telegram bot aniqlandi; " + healthy + "/" + checks.length + " repository tekshirildi.";
   }
 }
-
 
 function monitoringStatusLabel(status) {
   return ({
@@ -349,12 +375,16 @@ async function loadDashboard() {
     default_branch: project.github_default_branch,
     last_commit_message: project.github_last_commit_message,
     root_files_json: project.github_root_files_json,
+    detected_type: project.detected_type,
+    detection_confidence: project.detection_confidence,
+    detection_evidence_json: project.detection_evidence_json,
     error: project.github_error
   })));
   renderTasks(data.tasks || [], data.taskSteps || []);
   renderApprovals(data.approvals || []);
   renderMonitoringResults(data.monitoringChecks || []);
   await refreshIntegrations();
+  autoDetectTelegramBots(data.projects || []);
 }
 
 async function checkSetup() {
@@ -435,23 +465,35 @@ $("#refresh-dashboard-button").addEventListener("click", async () => {
   finally { button.disabled = false; button.textContent = "Yangilash ↻"; }
 });
 
-$("#github-scan-button").addEventListener("click", async () => {
+async function runGitHubProjectScan(automatic = false) {
+  if (projectScanInFlight) return;
+  projectScanInFlight = true;
   const button = $("#github-scan-button");
   const message = $("#github-scan-message");
   button.disabled = true;
-  button.textContent = "Repositorylar tekshirilmoqda…";
-  message.textContent = "GitHub API orqali repositorylar, oxirgi commit va asosiy fayllar tekshirilmoqda.";
+  button.textContent = automatic ? "Botlar aniqlanmoqda…" : "Repositorylar tekshirilmoqda…";
+  message.textContent = "Repository manifestlari, dependency va source kodlari tekshirilmoqda.";
   try {
     const result = await api("/api/integrations/github/scan", { method: "POST", body: "{}" });
-    message.textContent = result.healthy + "/" + result.total + " ta repository ochildi. Private ruxsat kerak bo‘lganlari alohida ko‘rsatiladi.";
+    message.textContent = result.telegramBots + " ta Telegram bot aniqlandi; " + result.healthy + "/" + result.total + " repository tekshirildi.";
     await loadDashboard();
   } catch (error) {
-    message.textContent = error.message;
+    message.textContent = (automatic ? "Avtomatik aniqlashda xatolik: " : "") + error.message;
   } finally {
+    projectScanInFlight = false;
     button.disabled = false;
-    button.innerHTML = 'GitHub loyihalarini tekshirish <span>→</span>';
+    button.innerHTML = 'GitHub + botlarni aniqlash <span>→</span>';
   }
-});
+}
+
+function autoDetectTelegramBots(projects) {
+  const needsDetection = projects.some(project =>
+    project.repo_url && project.repo_url.startsWith("https://github.com/") && !project.detection_checked_at
+  );
+  if (needsDetection && !projectScanInFlight) void runGitHubProjectScan(true);
+}
+
+$("#github-scan-button").addEventListener("click", () => runGitHubProjectScan(false));
 
 $("#discover-deployments-button").addEventListener("click", async () => {
   const button = $("#discover-deployments-button");
