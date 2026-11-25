@@ -840,7 +840,7 @@ async function handleApi(request, env) {
       env.DB.prepare("SELECT t.id, t.title, t.description, t.project_id, t.assigned_agent, t.priority, t.status, t.created_at, p.summary AS ai_summary FROM tasks t LEFT JOIN manager_plans p ON p.task_id = t.id ORDER BY t.created_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT s.id, s.task_id, s.step_order, s.agent, s.title, s.description, s.operation, s.requires_approval, s.status FROM task_steps s JOIN tasks t ON t.id = s.task_id ORDER BY t.created_at DESC, s.step_order ASC LIMIT 100").all(),
       env.DB.prepare("SELECT (SELECT COUNT(*) FROM projects) AS projects, (SELECT COUNT(*) FROM tasks) AS tasks, (SELECT COUNT(*) FROM tasks WHERE status = 'in_progress') AS active, (SELECT COUNT(*) FROM approvals WHERE status = 'pending') AS pending_approvals").first(),
-      env.DB.prepare("SELECT id, title, operation, requested_at FROM approvals WHERE status = 'pending' ORDER BY requested_at DESC LIMIT 10").all(),
+      env.DB.prepare("SELECT id, task_id, title, operation, details_json, requested_at FROM approvals WHERE status = 'pending' ORDER BY requested_at DESC LIMIT 20").all(),
       env.DB.prepare("SELECT id, action, target_type, target_id, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 12").all(),
       env.DB.prepare("SELECT project_id, checked_at, status, is_private, default_branch, last_commit_at, last_commit_message, root_files_json, error FROM project_checks WHERE provider = 'github'").all(),
       env.DB.prepare("SELECT m.project_id, p.name, m.checked_at, m.status, m.target_url, m.http_status, m.response_ms, m.error FROM monitoring_checks m JOIN projects p ON p.id = m.project_id").all()
@@ -924,12 +924,21 @@ async function handleApi(request, env) {
       "INSERT INTO manager_plans (id, task_id, summary, plan_json, model) VALUES (?, ?, ?, ?, ?)"
     ).bind(crypto.randomUUID(), taskId, plan.summary, JSON.stringify(plan), env.AI_MODEL || MODEL).run();
     for (const step of plan.steps) {
+      const stepId = crypto.randomUUID();
       await env.DB.prepare(
         "INSERT INTO task_steps (id, task_id, step_order, agent, title, description, operation, requires_approval, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'planned')"
       ).bind(
-        crypto.randomUUID(), taskId, step.order, step.agent, step.title, step.description,
+        stepId, taskId, step.order, step.agent, step.title, step.description,
         step.operation, step.requiresApproval ? 1 : 0
       ).run();
+      if (step.requiresApproval) {
+        await env.DB.prepare(
+          "INSERT INTO approvals (id, task_id, title, operation, details_json, status) VALUES (?, ?, ?, ?, ?, 'pending')"
+        ).bind(
+          crypto.randomUUID(), taskId, step.title, step.operation,
+          JSON.stringify({ stepId, agent: step.agent, description: step.description, projectId: plan.projectId })
+        ).run();
+      }
     }
     await audit(env, "command.planned", "task", taskId, {
       title: plan.title,
@@ -946,6 +955,39 @@ async function handleApi(request, env) {
       steps: plan.steps,
       message: "AI Manager buyruqni tahlil qildi va vazifani AI ishchilariga taqsimladi. Kod o‘zgartirish va deploy amallari GitHub/Cloudflare ishchi integratsiyasi ulanmaguncha bajarilmaydi."
     }, 201);
+  }
+
+  const approvalDecisionMatch = path.match(/^\/api\/approvals\/([^/]+)\/decision$/);
+  if (approvalDecisionMatch && method === "POST") {
+    let body;
+    try { body = await readJson(request); } catch (error) {
+      return json({ error: "INVALID_REQUEST", message: error.message }, 400);
+    }
+    const decision = body.decision === "approve" ? "approved" : body.decision === "reject" ? "rejected" : "";
+    if (!decision) return json({ error: "VALIDATION_ERROR", message: "decision approve yoki reject bo‘lishi kerak." }, 400);
+    const approvalId = decodeURIComponent(approvalDecisionMatch[1]);
+    const approval = await env.DB.prepare(
+      "SELECT id, task_id, title, operation, details_json, status FROM approvals WHERE id = ?"
+    ).bind(approvalId).first();
+    if (!approval) return json({ error: "APPROVAL_NOT_FOUND", message: "Tasdiq so‘rovi topilmadi." }, 404);
+    if (approval.status !== "pending") return json({ error: "APPROVAL_ALREADY_DECIDED", message: "Bu so‘rov avval ko‘rib chiqilgan." }, 409);
+    const note = typeof body.note === "string" ? body.note.trim().slice(0, 300) : "";
+    await env.DB.prepare(
+      "UPDATE approvals SET status = ?, decided_at = CURRENT_TIMESTAMP, decision_note = ? WHERE id = ? AND status = 'pending'"
+    ).bind(decision, note || null, approvalId).run();
+    let details = {};
+    try { details = JSON.parse(approval.details_json || "{}"); } catch {}
+    if (decision === "rejected" && details.stepId) {
+      await env.DB.prepare("UPDATE task_steps SET status = 'blocked' WHERE id = ? AND status = 'planned'").bind(details.stepId).run();
+    }
+    await audit(env, "approval." + decision, "approval", approvalId, { taskId: approval.task_id, operation: approval.operation, title: approval.title });
+    return json({
+      ok: true, id: approvalId, status: decision,
+      execution: "not_started",
+      message: decision === "approved"
+        ? "Ruxsat qayd etildi. Bu hali kod o‘zgartirish yoki deployni bajarmaydi; executor integratsiyasi alohida ishga tushiriladi."
+        : "So‘rov rad etildi; tegishli qadam bloklandi."
+    });
   }
 
   const cancelMatch = path.match(/^\/api\/tasks\/([^/]+)\/cancel$/);

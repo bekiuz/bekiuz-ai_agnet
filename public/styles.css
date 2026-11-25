@@ -189,3 +189,18 @@ section[id],.panel[id]{scroll-margin-top:18px}
   .task-status{white-space:normal;text-align:center}
   footer{gap:10px;flex-wrap:wrap}
 }
+
+/* Owner approval queue */
+.approvals-panel{margin-top:18px}
+.approvals-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.approval-card{padding:13px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025);min-width:0}
+.approval-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.approval-card-top b{font-size:13px;overflow-wrap:anywhere}
+.approval-operation{font-size:9px;color:#c4b5fd;white-space:nowrap}
+.approval-card p{font-size:11px;color:var(--muted);line-height:1.5;margin:9px 0}
+.approval-card small{font-size:10px;color:var(--muted)}
+.approval-actions{display:flex;gap:8px;margin-top:12px}
+.approval-actions button{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font:inherit;font-size:11px;cursor:pointer}
+.approve-button{background:rgba(91,190,145,.13);color:#a7f3d0}
+.reject-button{background:rgba(248,113,113,.1);color:#fecaca}
+@media(max-width:650px){.approvals-list{grid-template-columns:1fr}.approval-actions button{flex:1}}

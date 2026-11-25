@@ -36,6 +36,7 @@
         <a class="nav-item active" href="#overview"><span>◫</span> Umumiy holat</a>
         <a class="nav-item" href="#projects"><span>▦</span> Loyihalar</a>
         <a class="nav-item" href="#tasks"><span>☷</span> Vazifalar</a>
+        <a class="nav-item" href="#approvals"><span>✓</span> Tasdiqlar</a>
         <a class="nav-item" href="#agents"><span>✳</span> AI jamoa</a>
         <a class="nav-item" href="#integrations"><span>⌘</span> Integratsiyalar</a>
       </nav>
@@ -71,7 +72,7 @@
           <div class="command-footer"><span>2000 belgigacha</span><button class="primary-button" type="submit">AI Manager’ga topshirish <span>→</span></button></div>
         </form>
         <p id="command-message" class="form-message" role="status"></p>
-        <div class="notice"><span>ⓘ</span><p>AI Manager hozir buyruqlarni tahlil qiladi va AI ishchilar uchun aniq reja tuzadi. Kodni o‘zgartirish va deploy qilish uchun GitHub hamda Cloudflare ishchi integratsiyasi alohida ulanadi.</p></div>
+        <div class="notice"><span>ⓘ</span><p>Eslatma: AI Manager vazifalarni rejalashtiradi. Kod o‘zgartirish, deploy va tashqi amallar egasi tasdig‘ini talab qiladi; tasdiqdan keyin ham alohida executor kerak bo‘ladi.</p></div>
       </section>
 
       <section class="content-grid">
@@ -87,6 +88,13 @@
           <input id="task-search" class="panel-search" type="search" placeholder="Vazifa nomi yoki holati bo‘yicha qidirish…" aria-label="Vazifalarni qidirish">
           <div id="tasks-list" class="tasks-list"><div class="empty-state">Ma’lumot yuklanmoqda…</div></div>
         </div>
+      </section>
+
+      <section class="panel approvals-panel" id="approvals">
+        <div class="panel-heading"><div><p class="eyebrow">OWNER APPROVAL GATE</p><h2>Amallarni tasdiqlash</h2></div><span class="count-pill">KUTMOQDA</span></div>
+        <p class="muted">Kod o‘zgartirish, deploy va tashqi xabar kabi amallar avval egasi tomonidan ko‘rib chiqiladi. Tasdiq qayd etilishi amal bajarildi degani emas.</p>
+        <p id="approval-message" class="form-message" role="status"></p>
+        <div id="approvals-list" class="approvals-list"><div class="empty-state">Tasdiqlar yuklanmoqda…</div></div>
       </section>
 
       <section class="panel monitoring-panel" id="monitoring">

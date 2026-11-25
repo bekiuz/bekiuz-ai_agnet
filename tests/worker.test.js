@@ -122,4 +122,5 @@ test("AI Manager creates structured specialist plan and persists it", async () =
   assert.equal(db.writes.filter(write => write.sql.includes("INSERT INTO tasks")).length, 1);
   assert.equal(db.writes.filter(write => write.sql.includes("INSERT INTO manager_plans")).length, 1);
   assert.equal(db.writes.filter(write => write.sql.includes("INSERT INTO task_steps")).length, 3);
+  assert.equal(db.writes.filter(write => write.sql.includes("INSERT INTO approvals")).length, 1);
 });

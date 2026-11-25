@@ -148,6 +148,24 @@ function renderMonitoringResults(checks = []) {
   $("#monitoring-message").textContent = online + " ta loyiha javob berdi, " + missing + " tasida deployment URL sozlanmagan.";
 }
 
+function renderApprovals(approvals = []) {
+  const target = $("#approvals-list");
+  if (!target) return;
+  target.innerHTML = approvals.length ? approvals.map(item => {
+    let details = {};
+    try { details = JSON.parse(item.details_json || "{}"); } catch {}
+    const agentNames = { developer:"Developer AI", monitoring:"Monitoring AI", research:"Research AI", business:"Business AI", support:"Support AI", security:"Security AI", manager:"AI Manager" };
+    return '<article class="approval-card">' +
+      '<div class="approval-card-top"><b>' + escapeHtml(item.title) + '</b><span class="approval-operation">' + escapeHtml(item.operation) + '</span></div>' +
+      '<p>' + escapeHtml(details.description || "Qo‘shimcha tafsilot berilmagan.") + '</p>' +
+      '<small>' + escapeHtml(agentNames[details.agent] || details.agent || "AI agent") + ' · ' + escapeHtml(formatDate(item.requested_at)) + '</small>' +
+      '<div class="approval-actions">' +
+      '<button type="button" class="approve-button" data-approval-id="' + escapeHtml(item.id) + '" data-decision="approve">Ruxsat berish</button>' +
+      '<button type="button" class="reject-button" data-approval-id="' + escapeHtml(item.id) + '" data-decision="reject">Rad etish</button>' +
+      '</div></article>';
+  }).join("") : '<div class="empty-state">Hozircha ko‘rib chiqilishi kerak bo‘lgan so‘rov yo‘q.</div>';
+}
+
 function renderTasks(tasks, taskSteps = []) {
   dashboardTasks = tasks;
   dashboardTaskSteps = taskSteps;
@@ -334,6 +352,7 @@ async function loadDashboard() {
     error: project.github_error
   })));
   renderTasks(data.tasks || [], data.taskSteps || []);
+  renderApprovals(data.approvals || []);
   renderMonitoringResults(data.monitoringChecks || []);
   await refreshIntegrations();
 }
@@ -389,6 +408,24 @@ commandInput.addEventListener("keydown", event => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") $("#command-form").requestSubmit();
 });
 $("#task-search").addEventListener("input", () => renderTasks(dashboardTasks, dashboardTaskSteps));
+$("#approvals-list").addEventListener("click", async event => {
+  const button = event.target.closest("[data-approval-id][data-decision]");
+  if (!button) return;
+  const decision = button.dataset.decision;
+  const label = decision === "approve" ? "ruxsat bermoqchimisiz?" : "rad etmoqchimisiz?";
+  if (!confirm("Ushbu amal so‘roviga " + label)) return;
+  button.disabled = true;
+  try {
+    const result = await api("/api/approvals/" + encodeURIComponent(button.dataset.approvalId) + "/decision", {
+      method: "POST", body: JSON.stringify({ decision })
+    });
+    $("#approval-message").textContent = result.message;
+    await loadDashboard();
+  } catch (error) {
+    $("#approval-message").textContent = error.message;
+    button.disabled = false;
+  }
+});
 $("#refresh-dashboard-button").addEventListener("click", async () => {
   const button = $("#refresh-dashboard-button");
   button.disabled = true;
