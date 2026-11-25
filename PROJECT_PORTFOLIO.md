@@ -43,6 +43,7 @@
 | 25 | **Odina Chocolate Universe** — `odina-chocolate-universe` | Latest commit `e0106f0` (2026-11-14) initializes the repository. | Define the product catalog and ordering experience before adding backend work. |
 | 26 | **Bekiuz Music Bot** — `bekiuz-music-bot` | Latest commit `611152d` (2026-10-29) adds YouTube runtime detection and host diagnostics. A previous download flow still needs source-specific reliability work. | Diagnose permitted source handling and error reporting; do not promise downloads until tested end-to-end. |
 | 27 | **BEKIUZ Nexus** — `bekiuz-nexus` | Latest commit `62ffc9f` (2026-10-14) prevents prompt labels from leaking into generated copy. | Clarify whether Nexus is an agent workspace, prompt library or separate product and keep one clear scope. |
+| 28 | **BEKIUZ AI Core Worker** — `bekiuz-ai` | Latest commit `316c49c` (2026-11-05) fixes ODIY prompt syntax; it is a shared AI backend dependency for related web apps. | Verify `/api/chat` and the Market AI/ClipForge action routes end-to-end, then add request limits and regression coverage. |
 
 ## Maintenance and legacy repositories
 
