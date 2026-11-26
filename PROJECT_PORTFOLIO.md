@@ -16,8 +16,8 @@
 
 | Priority | Project / repository | Verified state | Next practical milestone |
 |---:|---|---|---|
-| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest main commit `aee9de9` (2026-11-25); CI run #78 passed. The Worker has owner-authenticated GitHub scanning and read-only Developer AI analysis; production D1 currently contains 10 project records. | Sync the full active portfolio and make repository scans run in bounded batches before adding any write executor. |
-| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). JavaScript validation and artifact upload passed; `deploy-pages` then returned `Found 0 artifact(s)`. The log points to artifact metadata lookup, not game syntax. | Keep the retry as an owner-approved production deployment; then work on rigged animations, character models, more curses and boss encounters. |
+| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest main commit `aee9de9` (2026-11-25); CI run #78 passed. Draft PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) adds 28-project registry sync and batched read-only scans; its CI run #79 passed. Production D1 still has 10 records until the migration is approved and applied. | Review PR #4, then apply its registry migration only after owner approval; next add the branch/patch/test/PR executor with approval gates. |
+| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). The prior Pages run passed JS checks and upload but `deploy-pages` returned `Found 0 artifact(s)`. Draft PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) upgrades Pages actions and adds PR-only validation; its validation passed and deploy was skipped. | Review PR #1; any production Pages deployment remains owner-approved, then work on rigged animations and additional encounters. |
 | 3 | **Bekiuz DubLab** — `bekiuz-dublab` | Latest commit `aca8ed5` (2026-11-21); Python checks and Docker image build checks passed. Studio currently replaces the original audio track, so music and background effects are lost. | Research and prototype speech/source separation so dialogue can be replaced while preserving music and effects; improve timing correction. |
 | 4 | **BEKIUZ AI Workers** — `bekiuz-ai-workers` | Latest commit `fa97560` (2026-11-22), fixing Developer AI source-scan syntax. | Add regression tests for Worker actions used by Market AI and ClipForge, plus timeout, CORS and failure-fallback checks. |
 | 5 | **BEKIUZ COMPANY** — `bekiuz-company` | Latest commit `e49cbbb` (2026-11-15), fixing the Workers AI function-tool schema. It remains a customer-facing platform, separate from the internal AI Manager. | Verify the customer lead/project-brief flow and define a protected handoff into AI Manager. |
@@ -105,7 +105,7 @@ The documentation commits are complete. A successful Pages workflow is evidence 
 
 ### Workflow and review status
 
-- **AI Manager:** main-branch CI run #78 passed before this branch. The new scan-pagination test will run in the PR workflow.
-- **JJK Cursed Arena:** run #26 passed JavaScript checks and uploaded the Pages artifact, but the deploy action could not retrieve artifact metadata. No retry was made because it would trigger a production Pages deployment.
+- **AI Manager:** main-branch CI run #78 passed; draft PR #4's syntax checks and unit tests passed in CI run #79.
+- **JJK Cursed Arena:** run #26 passed JavaScript checks and uploaded the Pages artifact, but the deploy action could not retrieve artifact metadata. Draft PR #1 updates the Pages actions and its validation-only job passed; the deploy job was skipped. No production deployment was triggered.
 - **KunAI:** PR #1 remains a draft and open. The backup code still needs browser interaction testing; no merge or deployment was performed.
 - No production database, deployment, secrets, or external messages were changed in this audit.
