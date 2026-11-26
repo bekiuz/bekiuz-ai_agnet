@@ -429,11 +429,20 @@ async function inspectRepositoryForTelegramBot(env, repo, branch, rootFiles) {
   return detectTelegramBot({ files: rootFiles, contents });
 }
 
-async function scanGitHubProjects(env) {
+async function scanGitHubProjects(env, { offset = 0, limit = 3 } = {}) {
   const projectsResult = await env.DB.prepare(
     "SELECT id, name, repo_url FROM projects WHERE repo_url LIKE 'https://github.com/%' ORDER BY name"
   ).all();
-  const projects = projectsResult.results || [];
+  const allProjects = projectsResult.results || [];
+  const requestedOffset = Number(offset);
+  const requestedLimit = Number(limit);
+  const safeOffset = Number.isInteger(requestedOffset) && requestedOffset >= 0
+    ? Math.min(requestedOffset, allProjects.length)
+    : 0;
+  const safeLimit = Number.isInteger(requestedLimit)
+    ? Math.min(3, Math.max(1, requestedLimit))
+    : 3;
+  const projects = allProjects.slice(safeOffset, safeOffset + safeLimit);
   const results = [];
 
   for (const project of projects) {
@@ -538,15 +547,25 @@ async function scanGitHubProjects(env) {
     });
   }
 
+  const nextOffset = safeOffset + results.length < allProjects.length
+    ? safeOffset + results.length
+    : null;
   await audit(env, "github.projects_scanned", "integration", "github", {
-    total: results.length,
+    total: allProjects.length,
+    scanned: results.length,
+    offset: safeOffset,
+    limit: safeLimit,
     healthy: results.filter(item => item.status === "healthy").length,
     permissionRequired: results.filter(item => item.status === "permission_required").length,
     telegramBots: results.filter(item => item.detection?.type === "telegram_bot").length
   });
   return {
     checkedAt: new Date().toISOString(),
-    total: results.length,
+    total: allProjects.length,
+    scanned: results.length,
+    offset: safeOffset,
+    limit: safeLimit,
+    nextOffset,
     healthy: results.filter(item => item.status === "healthy").length,
     permissionRequired: results.filter(item => item.status === "permission_required").length,
     telegramBots: results.filter(item => item.detection?.type === "telegram_bot").length,
@@ -888,7 +907,10 @@ async function handleApi(request, env) {
 
   if (path === "/api/integrations/github/scan" && method === "POST") {
     try {
-      const result = await scanGitHubProjects(env);
+      const result = await scanGitHubProjects(env, {
+        offset: url.searchParams.get("offset") || 0,
+        limit: url.searchParams.get("limit") || 3
+      });
       return json({ ok: true, ...result });
     } catch (error) {
       console.error("GitHub scan failed:", error);
