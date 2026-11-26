@@ -1,6 +1,6 @@
 # BEKIUZ Project Portfolio
 
-**Audit date:** 2026-11-25  
+**Audit date:** 2026-11-26  
 **Purpose:** one verified index for the BEKIUZ project ecosystem and the next practical work item for each active product.
 
 ## Operating rules
@@ -16,8 +16,8 @@
 
 | Priority | Project / repository | Verified state | Next practical milestone |
 |---:|---|---|---|
-| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest code commit `8af6f6d` (2026-11-18); CI and manual deploy workflow succeeded on that commit. The Worker plans tasks and delegates specialist steps, but does not yet modify repositories or run deployments. | Add GitHub App read-only repository inventory and sync project status; then introduce branch/patch/test/PR workflow with approval gates. |
-| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). JavaScript validation and Pages artifact upload passed; the final Pages deployment failed because the deploy action reported zero artifacts. This is a deployment/API issue, not a JavaScript syntax failure. | With deployment approval, retry the Pages deployment; then work on rigged animations, character models, more curses and boss encounters. |
+| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest main commit `aee9de9` (2026-11-25); CI run #78 passed. The Worker has owner-authenticated GitHub scanning and read-only Developer AI analysis; production D1 currently contains 10 project records. | Sync the full active portfolio and make repository scans run in bounded batches before adding any write executor. |
+| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). JavaScript validation and artifact upload passed; `deploy-pages` then returned `Found 0 artifact(s)`. The log points to artifact metadata lookup, not game syntax. | Keep the retry as an owner-approved production deployment; then work on rigged animations, character models, more curses and boss encounters. |
 | 3 | **Bekiuz DubLab** — `bekiuz-dublab` | Latest commit `aca8ed5` (2026-11-21); Python checks and Docker image build checks passed. Studio currently replaces the original audio track, so music and background effects are lost. | Research and prototype speech/source separation so dialogue can be replaced while preserving music and effects; improve timing correction. |
 | 4 | **BEKIUZ AI Workers** — `bekiuz-ai-workers` | Latest commit `fa97560` (2026-11-22), fixing Developer AI source-scan syntax. | Add regression tests for Worker actions used by Market AI and ClipForge, plus timeout, CORS and failure-fallback checks. |
 | 5 | **BEKIUZ COMPANY** — `bekiuz-company` | Latest commit `e49cbbb` (2026-11-15), fixing the Workers AI function-tool schema. It remains a customer-facing platform, separate from the internal AI Manager. | Verify the customer lead/project-brief flow and define a protected handoff into AI Manager. |
@@ -25,7 +25,7 @@
 | 7 | **BEKIUZ BUILD** — `BEKIUZ_BUILD` | Latest commit `cf91e47` (2026-10-29); validation and Pages build succeeded. The project has a separate imported mirror repository. | Verify the AI Worker connection and decide which repository is canonical before syncing further changes. |
 | 8 | **BEKIUZ Usta** — `BEKIUZ-Usta` | Code update `b0f67c8` (2026-11-24) subtracts door/window area; material calculator is present. README was refreshed on 2026-11-25. | Add saved house estimates and configurable local material prices; keep engineering limitations visible. |
 | 9 | **BEKIUZ Market AI** — `BEKIUZ-Market-AI` | Code update `5696aef` (2026-11-24) connects listing generation to Workers AI; local fallback remains. README was refreshed on 2026-11-25. | Test each platform format and add photo-based product detail extraction without inventing product facts. |
-| 10 | **KunAI** — `KunAI` | Code update `b07a258` (2026-11-24) improves sorting, overdue tracking and completed-task cleanup. README was refreshed on 2026-11-25. | Add safe task export/import and recurring tasks before considering cloud sync. |
+| 10 | **KunAI** — `KunAI` | Code update `b07a258` (2026-11-24) improves sorting, overdue tracking and completed-task cleanup. Draft PR [#1](https://github.com/bekiuz/KunAI/pull/1) adds JSON backup export/import but still needs browser interaction testing. | Finish browser tests for PR #1, then add recurring tasks before considering cloud sync. |
 | 11 | **MiniIsh 2.0** — `MiniIsh-2.0` | Code update `410a597` (2026-11-24) adds search, status and summary to the local task board. README was refreshed on 2026-11-25. | Design buyer/worker roles and a secure backend; the current prototype is not yet a multi-user marketplace. |
 | 12 | **OvozAI** — `OvozAI` | Code update `0e167af` (2026-11-24) improves voice selection, speech controls and browser compatibility. README was refreshed on 2026-11-25. | Verify Uzbek voice availability across browsers and add explicit speech-rate/pause controls. |
 | 13 | **BiznesOS** — `BiznesOS` | Code update `bede077` (2026-11-24) improves stock controls, low-stock alerts and validation. README was refreshed on 2026-11-25. | Add CSV reports, expense tracking and a clear backup path before multi-user accounts. |
@@ -91,3 +91,21 @@ Feature/status documentation was updated in these repositories without changing 
 ### Verification boundary
 
 The documentation commits are complete. A successful Pages workflow is evidence that the workflow completed, not a full browser QA of every feature. The two blocked Pages workflows and the JJK deployment issue remain open; no production secrets, data or deployment settings were changed during this audit.
+
+
+## Latest audit results — 2026-11-26
+
+### Verified inventory and Manager coverage
+
+- The linked GitHub account exposes **48 repositories**.
+- The active portfolio queue above contains **28 products**; the live AI Manager D1 registry currently contains **10**.
+- Two existing registry links were stale: JJK pointed to the empty/private `JJK-Cursed-Game` repository instead of `jjk-cursed-arena`, and MiniIsh pointed to the legacy `miniish-platform` instead of `MiniIsh-2.0`.
+- This branch adds migration `0004_sync_active_portfolio.sql` to register the 28 active products and correct those two repository links. It is a reviewable migration only; it has **not** been applied to production D1.
+- GitHub scanning is changed to process at most three repositories per Worker request. The dashboard follows each batch using `nextOffset`; this avoids trying to inspect the entire expanded portfolio in one request.
+
+### Workflow and review status
+
+- **AI Manager:** main-branch CI run #78 passed before this branch. The new scan-pagination test will run in the PR workflow.
+- **JJK Cursed Arena:** run #26 passed JavaScript checks and uploaded the Pages artifact, but the deploy action could not retrieve artifact metadata. No retry was made because it would trigger a production Pages deployment.
+- **KunAI:** PR #1 remains a draft and open. The backup code still needs browser interaction testing; no merge or deployment was performed.
+- No production database, deployment, secrets, or external messages were changed in this audit.
