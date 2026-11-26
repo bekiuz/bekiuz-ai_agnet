@@ -112,3 +112,21 @@ Deploydan oldin Cloudflare Worker secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`) v
 - Kod o‘zgarishlari alohida branch va review orqali.
 - Deploy, delete, secret rotation va tashqi xabar yuborish alohida tasdiq talab qiladi.
 - Har bir amal audit log'ga yoziladi.
+
+
+## GitHub portfolio inventory
+
+The Manager's GitHub integration is read-only:
+
+- `GET /api/integrations/status` checks configured GitHub, Netlify and Cloudflare credentials without returning secret values.
+- `POST /api/integrations/github/scan?offset=0&limit=3` checks up to three registered repositories per request. The dashboard follows the returned `nextOffset` until the inventory is complete.
+- The scan records repository visibility, default branch, latest commit and root files. It reads a small set of manifests/source files only to classify Telegram bots; it does not write to GitHub.
+- `POST /api/agents/developer/analyze` sends a read-only repository review request to the Developer AI Worker.
+
+Optional Worker secrets:
+
+- `GITHUB_TOKEN` — fine-grained token with read-only Metadata and Contents access to the repositories the Manager should inspect. Public repositories can be scanned without it; private repositories need access.
+- `DEVELOPER_AI_SHARED_SECRET` — must match `MANAGER_SHARED_SECRET` on the Developer AI Worker.
+- `NETLIFY_ACCESS_TOKEN` — optional read-only access for matching repositories to Netlify sites.
+
+Never commit these values or paste them into chat. Adding a project to the Manager registry does not deploy it or prove that its production URL is live.
