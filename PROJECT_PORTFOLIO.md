@@ -114,7 +114,7 @@ The documentation commits are complete. A successful Pages workflow is evidence 
 
 ### Portfolio and pull-request status
 
-- The linked GitHub account currently exposes **48 repositories** (the previous audit count of 48 was one too high). The active portfolio remains **28 products**.
+- The linked GitHub account currently exposes **48 repositories**, matching the previous audit. The active portfolio remains **28 products**.
 - **AI Manager:** draft PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) remains reviewable and its latest CI run #80 passed. The D1 migration is not applied; production registry changes still require owner approval.
 - **JJK Cursed Arena:** draft PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) validation passed in run #27. The production deploy job was skipped, so the live Pages deployment remains unverified.
 - **KunAI:** PR [#1](https://github.com/bekiuz/KunAI/pull/1) now caps imports at 5 MB, accepts the current backup version, validates positive safe-integer task IDs, and includes Node regression tests for export/import, oversized files, duplicate IDs and escaped task text. The branch is four commits ahead of main and has no reported CI run yet.
