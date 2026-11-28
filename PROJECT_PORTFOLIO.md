@@ -142,13 +142,13 @@ The documentation commits are complete. A successful Pages workflow is evidence 
 
 ### Changes prepared on review branches
 
-- **Nari AI:** PR [#3](https://github.com/bekiuz/nari_ai/pull/3) now bounds Google's Firebase certificate lookup to 10 seconds and tests that an abort signal is supplied. Both latest CI runs passed. The PR remains open and is 11 commits ahead / 2 behind main.
+- **Nari AI:** PR [#3](https://github.com/bekiuz/nari_ai/pull/3) verifies Firebase ID-token RSA signatures and project claims, uses a 10-second certificate-fetch timeout, correctly parses Google's numeric certificate cache `max-age`, and tests certificate-cache expiry. Latest CI run #98 passed TypeScript, token tests and production build. The PR remains draft/open, is mergeable, and is 13 commits ahead / 2 behind main.
 - **Zuxrash Android:** PR [#1](https://github.com/bekiuz/zuxrash-android-assistant/pull/1) narrows the APK workflow to read-only repository permissions, removes automatic pushes to main, and adds pull-request validation. The push-triggered build passed and generated the debug APK artifact; the PR-triggered build is still running.
 - **DubLab:** PR [#1](https://github.com/bekiuz/bekiuz-dublab/pull/1) cleans up temporary video files when an upload or AI analysis fails and saves the new session before deleting the previous one. Python syntax, Python import checks and Docker build all passed.
 
 ### Other active review branches
 
-- **AI Manager:** PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) remains open with CI success. Its D1 migration is not applied to production.
+- **AI Manager:** PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) remains open with the 28-project registry migration and batched read-only scans. Its README's 11 accidental literal `\\n` sequences were converted to real line breaks on the review branch. Its D1 migration is not applied to production.
 - **AI Workers:** PR [#1](https://github.com/bekiuz/bekiuz-ai-workers/pull/1) has passing endpoint tests and remains open.
 - **KunAI:** PR [#1](https://github.com/bekiuz/KunAI/pull/1) has passing backup tests; browser interaction testing remains.
 - **JJK Cursed Arena:** PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) validation passed; production Pages deploy was skipped.
