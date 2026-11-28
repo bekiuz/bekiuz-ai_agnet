@@ -472,10 +472,30 @@ async function runGitHubProjectScan(automatic = false) {
   const message = $("#github-scan-message");
   button.disabled = true;
   button.textContent = automatic ? "Botlar aniqlanmoqda…" : "Repositorylar tekshirilmoqda…";
-  message.textContent = "Repository manifestlari, dependency va source kodlari tekshirilmoqda.";
+  message.textContent = "Repositorylar 3 tadan xavfsiz bo‘laklarda tekshirilmoqda.";
   try {
-    const result = await api("/api/integrations/github/scan", { method: "POST", body: "{}" });
-    message.textContent = result.telegramBots + " ta Telegram bot aniqlandi; " + result.healthy + "/" + result.total + " repository tekshirildi.";
+    const summary = { total: 0, scanned: 0, healthy: 0, telegramBots: 0, permissionRequired: 0 };
+    let offset = 0;
+    while (true) {
+      const result = await api("/api/integrations/github/scan?offset=" + offset + "&limit=3", {
+        method: "POST",
+        body: "{}"
+      });
+      summary.total = Number(result.total || 0);
+      summary.scanned += Number(result.scanned ?? (result.results || []).length);
+      summary.healthy += Number(result.healthy || 0);
+      summary.telegramBots += Number(result.telegramBots || 0);
+      summary.permissionRequired += Number(result.permissionRequired || 0);
+      message.textContent = summary.scanned + "/" + summary.total + " repository tekshirildi…";
+      if (result.nextOffset === null || result.nextOffset === undefined) break;
+      if (!Number.isInteger(Number(result.nextOffset)) || Number(result.nextOffset) <= offset) {
+        throw new Error("GitHub scan sahifalash javobi noto‘g‘ri.");
+      }
+      offset = Number(result.nextOffset);
+    }
+    message.textContent = summary.telegramBots + " ta Telegram bot aniqlandi; " +
+      summary.healthy + "/" + summary.total + " repository tekshirildi." +
+      (summary.permissionRequired ? " Private ruxsat kerak: " + summary.permissionRequired + "." : "");
     await loadDashboard();
   } catch (error) {
     message.textContent = (automatic ? "Avtomatik aniqlashda xatolik: " : "") + error.message;

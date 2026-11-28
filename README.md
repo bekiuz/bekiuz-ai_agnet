@@ -11,7 +11,9 @@ Bu mahsulot **BEKIUZ COMPANY** saytidan alohida. BEKIUZ COMPANY mijozlar uchun p
 - Cloudflare Worker API.
 - D1 ma’lumotlar bazasi: loyihalar, vazifalar, tasdiqlar, integratsiyalar va audit tarixi.
 - Boshlang‘ich loyiha reyestri.
-- Workers AI orqali buyruqlarni tahlil qilish va o‘zbek tilida ish rejasini tuzish.\n- Specialist AI rollariga reja qadamlarini taqsimlash.\n- Har bir qadamni D1 bazasida saqlash va boshqaruv panelida ko‘rsatish.
+- Workers AI orqali buyruqlarni tahlil qilish va o‘zbek tilida ish rejasini tuzish.
+- Specialist AI rollariga reja qadamlarini taqsimlash.
+- Har bir qadamni D1 bazasida saqlash va boshqaruv panelida ko‘rsatish.
 
 **Muhim:** bu foundation hali GitHub repository'larini o‘zgartirmaydi, deploy qilmaydi yoki AI ishchilarni real ishga tushirmaydi. Hozir Workers AI orqali command planning va role-based delegation ishlaydi. Bu bosqichda agentlar ish rejasi tuzadi, ammo repository kodini o‘zgartirish, deploy yoki tashqi xabar yuborish hali bajarilmaydi. Bular uchun keyingi GitHub/Cloudflare/Telegram integratsiyalari zarur.
 
@@ -84,7 +86,16 @@ Keyin GitHub → Actions → **Deploy BEKIUZ AI Manager** workflow'ini qo‘lda 
 
 Deploydan oldin Cloudflare Worker secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`) va D1 migration sozlangan bo‘lishi kerak.
 
-## AI Manager planning\n\n`POST /api/commands` Workers AI modeliga buyruq va loyiha reyestrini yuboradi, JSON ish rejasini tekshiradi, vazifani va agent qadamlarini D1 bazasiga yozadi.\n\n- Specialist rollar: manager, developer, monitoring, research, business, support, security.\n- Kod o‘zgartirish, deploy va tashqi xabar amallari tasdiq talab qiladigan qadam sifatida belgilanadi.\n- Rejalar `/api/bootstrap` orqali boshqaruv panelida ko‘rsatiladi.\n- AI plan tuzishi real kod o‘zgartirildi yoki deploy bo‘ldi degani emas.\n\n## Birinchi bosqichda ishlaydigan API
+## AI Manager planning
+
+`POST /api/commands` Workers AI modeliga buyruq va loyiha reyestrini yuboradi, JSON ish rejasini tekshiradi, vazifani va agent qadamlarini D1 bazasiga yozadi.
+
+- Specialist rollar: manager, developer, monitoring, research, business, support, security.
+- Kod o‘zgartirish, deploy va tashqi xabar amallari tasdiq talab qiladigan qadam sifatida belgilanadi.
+- Rejalar `/api/bootstrap` orqali boshqaruv panelida ko‘rsatiladi.
+- AI plan tuzishi real kod o‘zgartirildi yoki deploy bo‘ldi degani emas.
+
+## Birinchi bosqichda ishlaydigan API
 
 - `GET /api/health`
 - `POST /api/auth/login`
@@ -112,3 +123,21 @@ Deploydan oldin Cloudflare Worker secrets (`ADMIN_PASSWORD`, `SESSION_SECRET`) v
 - Kod o‘zgarishlari alohida branch va review orqali.
 - Deploy, delete, secret rotation va tashqi xabar yuborish alohida tasdiq talab qiladi.
 - Har bir amal audit log'ga yoziladi.
+
+
+## GitHub portfolio inventory
+
+The Manager's GitHub integration is read-only:
+
+- `GET /api/integrations/status` checks configured GitHub, Netlify and Cloudflare credentials without returning secret values.
+- `POST /api/integrations/github/scan?offset=0&limit=3` checks up to three registered repositories per request. The dashboard follows the returned `nextOffset` until the inventory is complete.
+- The scan records repository visibility, default branch, latest commit and root files. It reads a small set of manifests/source files only to classify Telegram bots; it does not write to GitHub.
+- `POST /api/agents/developer/analyze` sends a read-only repository review request to the Developer AI Worker.
+
+Optional Worker secrets:
+
+- `GITHUB_TOKEN` — fine-grained token with read-only Metadata and Contents access to the repositories the Manager should inspect. Public repositories can be scanned without it; private repositories need access.
+- `DEVELOPER_AI_SHARED_SECRET` — must match `MANAGER_SHARED_SECRET` on the Developer AI Worker.
+- `NETLIFY_ACCESS_TOKEN` — optional read-only access for matching repositories to Netlify sites.
+
+Never commit these values or paste them into chat. Adding a project to the Manager registry does not deploy it or prove that its production URL is live.

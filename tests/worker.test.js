@@ -64,6 +64,7 @@ function createMockDatabase() {
         bind(...values) { params = values; return statement; },
         async all() {
           if (sql.includes("SELECT id, name, category, repo_url")) return { results:projects };
+          if (sql.includes("SELECT id, name, repo_url FROM projects WHERE repo_url LIKE")) return { results:projects };
           return { results:[] };
         },
         async first() { return null; },
@@ -73,6 +74,68 @@ function createMockDatabase() {
     }
   };
 }
+
+
+test("GitHub project scans return bounded batches with a next offset", async () => {
+  const originalFetch = globalThis.fetch;
+  const db = createMockDatabase();
+  const env = {
+    ADMIN_PASSWORD: "test-owner-password",
+    SESSION_SECRET: "a-long-test-session-secret-for-local-tests",
+    GITHUB_TOKEN: "read-only-test-token",
+    DB: db
+  };
+  globalThis.fetch = async input => {
+    const target = new URL(typeof input === "string" ? input : input.url);
+    if (target.pathname.endsWith("/repos/bekiuz/bekiuz-dublab") ||
+        target.pathname.endsWith("/repos/bekiuz/bekiuz-company")) {
+      return Response.json({ private: false, default_branch: "main" });
+    }
+    if (target.pathname.endsWith("/commits")) {
+      return Response.json([{
+        sha: "test-commit",
+        commit: {
+          committer: { date: "2026-11-26T00:00:00Z" },
+          message: "test commit"
+        }
+      }]);
+    }
+    if (target.pathname.endsWith("/contents")) return Response.json([]);
+    return Response.json({ message: "Not found" }, { status: 404 });
+  };
+
+  try {
+    const login = await call("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: env.ADMIN_PASSWORD })
+    }, env);
+    const cookie = (login.headers.get("Set-Cookie") || "").split(";")[0];
+
+    const first = await call("/api/integrations/github/scan?offset=0&limit=1", {
+      method: "POST",
+      headers: { Cookie: cookie }
+    }, env);
+    const firstBody = await first.json();
+    assert.equal(first.status, 200);
+    assert.equal(firstBody.total, 2);
+    assert.equal(firstBody.scanned, 1);
+    assert.equal(firstBody.results.length, 1);
+    assert.equal(firstBody.nextOffset, 1);
+
+    const second = await call("/api/integrations/github/scan?offset=1&limit=1", {
+      method: "POST",
+      headers: { Cookie: cookie }
+    }, env);
+    const secondBody = await second.json();
+    assert.equal(second.status, 200);
+    assert.equal(secondBody.total, 2);
+    assert.equal(secondBody.scanned, 1);
+    assert.equal(secondBody.nextOffset, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("AI Manager creates structured specialist plan and persists it", async () => {
   const db = createMockDatabase();

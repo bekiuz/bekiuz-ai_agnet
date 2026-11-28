@@ -1,6 +1,6 @@
 # BEKIUZ Project Portfolio
 
-**Audit date:** 2026-11-25  
+**Audit date:** 2026-11-28  
 **Purpose:** one verified index for the BEKIUZ project ecosystem and the next practical work item for each active product.
 
 ## Operating rules
@@ -16,30 +16,30 @@
 
 | Priority | Project / repository | Verified state | Next practical milestone |
 |---:|---|---|---|
-| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest code commit `8af6f6d` (2026-11-18); CI and manual deploy workflow succeeded on that commit. The Worker plans tasks and delegates specialist steps, but does not yet modify repositories or run deployments. | Add GitHub App read-only repository inventory and sync project status; then introduce branch/patch/test/PR workflow with approval gates. |
-| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). JavaScript validation and Pages artifact upload passed; the final Pages deployment failed because the deploy action reported zero artifacts. This is a deployment/API issue, not a JavaScript syntax failure. | With deployment approval, retry the Pages deployment; then work on rigged animations, character models, more curses and boss encounters. |
-| 3 | **Bekiuz DubLab** — `bekiuz-dublab` | Latest commit `aca8ed5` (2026-11-21); Python checks and Docker image build checks passed. Studio currently replaces the original audio track, so music and background effects are lost. | Research and prototype speech/source separation so dialogue can be replaced while preserving music and effects; improve timing correction. |
-| 4 | **BEKIUZ AI Workers** — `bekiuz-ai-workers` | Latest commit `fa97560` (2026-11-22), fixing Developer AI source-scan syntax. | Add regression tests for Worker actions used by Market AI and ClipForge, plus timeout, CORS and failure-fallback checks. |
+| 1 | **BEKIUZ AI Manager** — `bekiuz-ai_agnet` | Latest main commit `aee9de9` (2026-11-25); CI run #78 passed. Draft PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) adds 28-project registry sync and batched read-only scans; CI runs #82–84 passed. Production D1 still has 10 records until the migration is approved and applied. | Review PR #4, then apply its registry migration only after owner approval; next add the branch/patch/test/PR executor with approval gates. |
+| 2 | **JJK Cursed Arena** — `jjk-cursed-arena` | Latest commit `c5d035e` (2026-11-24). The prior Pages run passed JS checks and upload but `deploy-pages` returned `Found 0 artifact(s)`. Draft PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) upgrades Pages actions and adds PR-only validation; run #27 passed and deploy was skipped. | Review PR #1; any production Pages deployment remains owner-approved, then work on rigged animations and additional encounters. |
+| 3 | **Bekiuz DubLab** — `bekiuz-dublab` | Main remains at `aca8ed5` (2026-11-21). Draft PR [#1](https://github.com/bekiuz/bekiuz-dublab/pull/1) cleans failed uploads and preserves the previous active scene until its replacement is saved. Python syntax, import checks and Docker build all passed on the latest PR head. Original music/effects are still lost in the current render. | Add focused tests for cleanup and continue source-separation research; do not claim background audio is preserved yet. |
+| 4 | **BEKIUZ AI Workers** — `bekiuz-ai-workers` | Draft PR [#1](https://github.com/bekiuz/bekiuz-ai-workers/pull/1) restricts CORS to an explicit origin allowlist, rejects malformed repository paths, adds a 10-second GitHub API timeout and endpoint tests; CI run #3 passed. | Review the CORS environment setting and run a Manager-to-Worker integration check before merge. |
 | 5 | **BEKIUZ COMPANY** — `bekiuz-company` | Latest commit `e49cbbb` (2026-11-15), fixing the Workers AI function-tool schema. It remains a customer-facing platform, separate from the internal AI Manager. | Verify the customer lead/project-brief flow and define a protected handoff into AI Manager. |
 | 6 | **ODIY IELTS** — `odiy-ai` | Latest commit `34293f8` (2026-11-10); GitHub Pages deployment succeeded on that commit. The repository still has an unchecked delivery checklist. | Run a complete learner-flow audit: Reading, Listening, Writing, Speaking, mock timer, feedback, progress and local fallback; update `TODO.md` only after verification. |
 | 7 | **BEKIUZ BUILD** — `BEKIUZ_BUILD` | Latest commit `cf91e47` (2026-10-29); validation and Pages build succeeded. The project has a separate imported mirror repository. | Verify the AI Worker connection and decide which repository is canonical before syncing further changes. |
 | 8 | **BEKIUZ Usta** — `BEKIUZ-Usta` | Code update `b0f67c8` (2026-11-24) subtracts door/window area; material calculator is present. README was refreshed on 2026-11-25. | Add saved house estimates and configurable local material prices; keep engineering limitations visible. |
 | 9 | **BEKIUZ Market AI** — `BEKIUZ-Market-AI` | Code update `5696aef` (2026-11-24) connects listing generation to Workers AI; local fallback remains. README was refreshed on 2026-11-25. | Test each platform format and add photo-based product detail extraction without inventing product facts. |
-| 10 | **KunAI** — `KunAI` | Code update `b07a258` (2026-11-24) improves sorting, overdue tracking and completed-task cleanup. README was refreshed on 2026-11-25. | Add safe task export/import and recurring tasks before considering cloud sync. |
+| 10 | **KunAI** — `KunAI` | Code update `b07a258` (2026-11-24) improves sorting, overdue tracking and completed-task cleanup. Draft PR [#1](https://github.com/bekiuz/KunAI/pull/1) adds JSON backup export/import, a 5 MB import cap, version/ID validation and Node regression tests; CI run #2 passed. Real-browser interaction testing is still outstanding. | Finish browser tests for PR #1, then add recurring tasks before considering cloud sync. |
 | 11 | **MiniIsh 2.0** — `MiniIsh-2.0` | Code update `410a597` (2026-11-24) adds search, status and summary to the local task board. README was refreshed on 2026-11-25. | Design buyer/worker roles and a secure backend; the current prototype is not yet a multi-user marketplace. |
 | 12 | **OvozAI** — `OvozAI` | Code update `0e167af` (2026-11-24) improves voice selection, speech controls and browser compatibility. README was refreshed on 2026-11-25. | Verify Uzbek voice availability across browsers and add explicit speech-rate/pause controls. |
 | 13 | **BiznesOS** — `BiznesOS` | Code update `bede077` (2026-11-24) improves stock controls, low-stock alerts and validation. README was refreshed on 2026-11-25. | Add CSV reports, expense tracking and a clear backup path before multi-user accounts. |
 | 14 | **ClipForge** — `ClipForge` | Code update `44164fa` (2026-11-24) connects Workers AI with an offline fallback. README was refreshed on 2026-11-25. | Add multi-variant scripts and a content calendar; keep generated factual claims reviewable. |
 | 15 | **CodeQuest-UZ** — `CodeQuest-UZ` | Code update `e1274dc` (2026-11-24) prevents repeated XP farming and persists quiz progress. README was refreshed on 2026-11-25. | Expand the small quiz bank into lessons and coding exercises with answer explanations. |
-| 16 | **Zuxrash Android** — `zuxrash-android-assistant` | Latest commit `3325ba1` (2026-11-02) closes the in-app Vosk model before resuming the background assistant. The current wake phrase flow still depends on Android speech recognition. | Stabilize Uzbek/Russian voice handling and evaluate an offline wake-word engine; preserve clear microphone controls and permissions. |
-| 17 | **Nari AI** — `naricham`, `nari_ai`, `naricham-backend` | The repositories have different activity levels: `naricham` last changed 2026-08-20, `nari_ai` 2026-10-26, backend 2026-08-29. | Identify the canonical frontend/backend pair and document which deployment is authoritative before adding features. |
+| 16 | **Zuxrash Android** — `zuxrash-android-assistant` | Main remains at `3325ba1` (2026-11-02). Draft PR [#1](https://github.com/bekiuz/zuxrash-android-assistant/pull/1) removes unnecessary `contents: write`, prevents CI from pushing generated files to `main`, and adds PR validation. The push-triggered build passed on PR head `88148a3` and produced `zuxrash-ai-debug-apk` (~30.1 MB); the separate PR-triggered build is still running. | Finish PR validation, then return to Uzbek/Russian voice handling and offline wake-word evaluation. |
+| 17 | **Nari AI** — `naricham`, `nari_ai`, `naricham-backend` | `nari_ai` main still contains the older JWT payload-only verifier. Draft PR [#3](https://github.com/bekiuz/nari_ai/pull/3) adds RSA-SHA256 signature verification, Firebase claim checks, key-rotation refresh and a 10-second certificate-fetch timeout. CI runs #46102200491 and #46102210064 passed after the timeout change; branch is 11 commits ahead / 2 behind main. Older PWA/Android PR [#1](https://github.com/bekiuz/nari_ai/pull/1) is 36 commits ahead / 60 behind and its latest TypeScript check failed (`ValidFirebaseTokenClaims.email`); do not merge it as-is. `naricham` is private and last pushed 2026-08-20. | Review and merge the focused security PR only after final code review; separately decide whether the stale PWA/Android work should be ported onto current main. |
 | 18 | **BEKIUZ TRADE AI** — `BEKIUZ-TRADE-AI` | Latest commit `1273fd3` (2026-11-18) adds Academy, glossary, demo quiz, journal and AI tutor UI. | Verify which learning flows use live data/AI and which remain demo-only; then add progress persistence. |
 | 19 | **BEKIUZ Dictator** — `BEKIUZ-DICTATOR` | Latest commit `a76fbe7` (2026-11-20) adds a desktop voice-assistant prototype. | Audit command permissions and define a small, safe first set of device actions. |
 | 20 | **Heiyin TV Dublaj Studio** — `heiyin-tv-dublaj-studio` | Latest commit `fd809c4` (2026-11-20) polishes poster cards and removes empty hero artwork. | Verify the real media workflow separately from the visual catalog prototype. |
 | 21 | **Aqlli Ustoz** — `aqlli-ustoz` | Latest commit `4121b48` (2026-11-18) makes the app speak complete AI replies. | Test speech output on Android and desktop browsers and improve interruption/retry handling. |
 | 22 | **Bekiuz Driving** — `bekiuz.driving` | Latest commit `668fc6d` (2026-11-09) fixes pause, mobile input release and ad reward handling. | Re-test touch controls and game-state transitions before expanding maps and vehicles. |
 | 23 | **Uzb Royale** — `uzb-royale` | Latest commit `4ad3339` (2026-10-18) documents improved shooting and aiming controls. | Re-check the current playable build and define the next gameplay milestone. |
-| 24 | **AnimeLab** — `animelab` | Latest commit `0cb75fd` (2026-10-30) initializes the project structure. | Confirm the MVP scope and remove overlap with the separate anime/TV bot projects. |
+| 24 | **AnimeLab** — `animelab` | Draft PR [#1](https://github.com/bekiuz/animelab/pull/1) adds the drawing studio, Firestore rules and Android build setup; CI run #10 passed. | Complete a real-device Google sign-in test before merging or releasing the Android package. |
 | 25 | **Odina Chocolate Universe** — `odina-chocolate-universe` | Latest commit `e0106f0` (2026-11-14) initializes the repository. | Define the product catalog and ordering experience before adding backend work. |
 | 26 | **Bekiuz Music Bot** — `bekiuz-music-bot` | Latest commit `611152d` (2026-10-29) adds YouTube runtime detection and host diagnostics. A previous download flow still needs source-specific reliability work. | Diagnose permitted source handling and error reporting; do not promise downloads until tested end-to-end. |
 | 27 | **BEKIUZ Nexus** — `bekiuz-nexus` | Latest commit `62ffc9f` (2026-10-14) prevents prompt labels from leaking into generated copy. | Clarify whether Nexus is an agent workspace, prompt library or separate product and keep one clear scope. |
@@ -91,3 +91,72 @@ Feature/status documentation was updated in these repositories without changing 
 ### Verification boundary
 
 The documentation commits are complete. A successful Pages workflow is evidence that the workflow completed, not a full browser QA of every feature. The two blocked Pages workflows and the JJK deployment issue remain open; no production secrets, data or deployment settings were changed during this audit.
+
+
+## Latest audit results — 2026-11-26
+
+### Verified inventory and Manager coverage
+
+- The linked GitHub account exposes **48 repositories**.
+- The active portfolio queue above contains **28 products**; the live AI Manager D1 registry currently contains **10**.
+- Two existing registry links were stale: JJK pointed to the empty/private `JJK-Cursed-Game` repository instead of `jjk-cursed-arena`, and MiniIsh pointed to the legacy `miniish-platform` instead of `MiniIsh-2.0`.
+- This branch adds migration `0004_sync_active_portfolio.sql` to register the 28 active products and correct those two repository links. It is a reviewable migration only; it has **not** been applied to production D1.
+- GitHub scanning is changed to process at most three repositories per Worker request. The dashboard follows each batch using `nextOffset`; this avoids trying to inspect the entire expanded portfolio in one request.
+
+### Workflow and review status
+
+- **AI Manager:** main-branch CI run #78 passed; draft PR #4's syntax checks and unit tests passed in CI run #79.
+- **JJK Cursed Arena:** run #26 passed JavaScript checks and uploaded the Pages artifact, but the deploy action could not retrieve artifact metadata. Draft PR #1 updates the Pages actions and its validation-only job passed; the deploy job was skipped. No production deployment was triggered.
+- **KunAI:** PR #1 remains a draft and open. The backup code still needs browser interaction testing; no merge or deployment was performed.
+- No production database, deployment, secrets, or external messages were changed in this audit.
+
+## Latest audit results — 2026-11-27
+
+### Portfolio and pull-request status
+
+- The linked GitHub account currently exposes **48 repositories**, matching the previous audit. The active portfolio remains **28 products**.
+- **AI Manager:** draft PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) remains reviewable and its latest CI run #80 passed. The D1 migration is not applied; production registry changes still require owner approval.
+- **JJK Cursed Arena:** draft PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) validation passed in run #27. The production deploy job was skipped, so the live Pages deployment remains unverified.
+- **KunAI:** PR [#1](https://github.com/bekiuz/KunAI/pull/1) now caps imports at 5 MB, accepts the current backup version, validates positive safe-integer task IDs, and includes Node regression tests for export/import, oversized files, duplicate IDs and escaped task text. CI run #2 passed; real-browser interaction testing remains.
+- **Zuxrash / Nari AI:** main's current Firebase token verifier decodes JWT claims without checking the RSA signature. Draft PR [#3](https://github.com/bekiuz/nari_ai/pull/3) adds signature verification using Google's rotating public certificates, project-bound claim checks and deterministic tests. CI run #91 passed; the PR is seven commits ahead of main and currently mergeable.
+- The older Android/PWA PR [#1](https://github.com/bekiuz/nari_ai/pull/1) is 36 commits ahead and 58 behind main and is currently non-mergeable. It must be rebased or its Android/PWA work reapplied before review; do not merge it as-is.
+- **AnimeLab:** draft PR [#1](https://github.com/bekiuz/animelab/pull/1) has CI run #10 passed. Real-device Google sign-in still needs testing.
+
+### Safety and verification boundary
+
+- No production D1 migration, deployment, Firebase data, secrets or user data was changed.
+- New KunAI and Zuxrash changes are on review branches only.
+- **BEKIUZ AI Workers:** PR [#1](https://github.com/bekiuz/bekiuz-ai-workers/pull/1) CI run #3 passed, including health, CORS, authorization, input-validation and read-only scan tests.
+- **KunAI:** PR [#1](https://github.com/bekiuz/KunAI/pull/1) CI run #2 passed its Node-based backup regression tests; this is not a substitute for a real browser test.
+- **Zuxrash / Nari AI:** PR [#3](https://github.com/bekiuz/nari_ai/pull/3) CI run #95 passed TypeScript, token-claim tests, a generated-RSA signature/tamper test and production build.
+- **AI Manager:** PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) CI run #84 passed after the portfolio audit update.
+
+
+## Latest audit results — 2026-11-28
+
+### Repository inventory
+
+- The linked GitHub account exposes **48 repositories**.
+- The active portfolio queue remains **28 products**; the other repositories include legacy duplicates, imported mirrors and prototypes.
+- There are now **9 open pull requests** across the active portfolio and related assistant repositories. None was merged or deployed during this audit.
+
+### Changes prepared on review branches
+
+- **Nari AI:** PR [#3](https://github.com/bekiuz/nari_ai/pull/3) verifies Firebase ID-token RSA signatures and project claims, uses a 10-second certificate-fetch timeout, correctly parses Google's numeric certificate cache `max-age`, and tests certificate-cache expiry. Latest CI run #98 passed TypeScript, token tests and production build. The PR remains draft/open, is mergeable, and is 13 commits ahead / 2 behind main.
+- **Zuxrash Android:** PR [#1](https://github.com/bekiuz/zuxrash-android-assistant/pull/1) narrows the APK workflow to read-only repository permissions, removes automatic pushes to main, and adds pull-request validation. The push-triggered build passed and generated the debug APK artifact; the PR-triggered build is still running.
+- **DubLab:** PR [#1](https://github.com/bekiuz/bekiuz-dublab/pull/1) cleans up temporary video files when an upload or AI analysis fails and saves the new session before deleting the previous one. Python syntax, Python import checks and Docker build all passed.
+
+### Other active review branches
+
+- **AI Manager:** PR [#4](https://github.com/bekiuz/bekiuz-ai_agnet/pull/4) remains open with the 28-project registry migration and batched read-only scans. Its README's 11 accidental literal `\\n` sequences were converted to real line breaks on the review branch. Its D1 migration is not applied to production.
+- **AI Workers:** PR [#1](https://github.com/bekiuz/bekiuz-ai-workers/pull/1) has passing endpoint tests and remains open.
+- **KunAI:** PR [#1](https://github.com/bekiuz/KunAI/pull/1) has passing backup tests; browser interaction testing remains.
+- **JJK Cursed Arena:** PR [#1](https://github.com/bekiuz/jjk-cursed-arena/pull/1) validation passed; production Pages deploy was skipped.
+- **AnimeLab:** PR [#1](https://github.com/bekiuz/animelab/pull/1) web build and Android artifact checks passed earlier; real-device Google sign-in remains unverified.
+- **Nari AI legacy PR [#1](https://github.com/bekiuz/nari_ai/pull/1):** it is 60 commits behind main and has a TypeScript failure. Keep it out of merge until its Android/PWA work is reapplied to a current branch and revalidated.
+
+### Verification boundary
+
+- No production deployment, D1 migration, secret rotation, Firebase data change, or user-data change was performed.
+- CI success is not proof of end-to-end device/browser behavior.
+- DubLab still replaces the original audio track; speech/music source separation remains future work.
